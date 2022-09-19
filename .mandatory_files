@@ -17,6 +17,7 @@
 docs/README.md
 
 example_data
+.pre-commit-config.yaml
 
 
 tests/fixtures/__init__.py
