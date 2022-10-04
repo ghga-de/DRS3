@@ -30,3 +30,8 @@ config_schema.json
 example_config.yaml
 README.md
 setup.py
+
+.pre-commit-config.yaml
+.pylintrc
+.static_files
+.mandatory_files

@@ -33,13 +33,8 @@ pytest.ini
 .flake8
 .gitattributes
 .gitignore
-.pre-commit-config.yaml
-.pylintrc
 .mypy.ini
 
 LICENSE
 requirements.txt
 setup.py
-
-.static_files
-.mandatory_files
