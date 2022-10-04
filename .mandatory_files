@@ -18,6 +18,7 @@ docs/README.md
 
 example_data
 
+scripts/license_checker.py
 
 tests/fixtures/__init__.py
 tests/integration/fixtures/__init__.py
