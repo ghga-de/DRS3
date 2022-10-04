@@ -34,6 +34,7 @@ pytest.ini
 .gitattributes
 .gitignore
 .mypy.ini
+.pylintrc
 
 LICENSE
 requirements.txt
