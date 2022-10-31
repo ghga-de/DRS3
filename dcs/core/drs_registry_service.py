@@ -45,36 +45,6 @@ class NoCorrespondingDrsObjectError(RuntimeError):
         super().__init__(message)
 
 
-class ContentMissmatchError(RuntimeError):
-    """Raised when referring to a DRS object with the right primary ID but not the
-    right content ID."""
-
-    def __init__(
-        self,
-        *,
-        drs_id: str,
-        observed_decrypted_sha256: str,
-        expected_decrypted_sha256: str,
-    ):
-        message = (
-            f"Missmatch of the content for DRS Object with the DRS ID {drs_id}:"
-            + f" got a content ID of {observed_decrypted_sha256} but expected"
-            + f" {expected_decrypted_sha256}"
-        )
-        super().__init__(message)
-
-
-class DrsObjectNotInOutbox(RuntimeError):
-    """Raised when a DRS object was unexpectedly not in the outbox."""
-
-    def __init__(self, *, drs_id: str):
-        message = (
-            f"Could not find the DRS Object with the following ID in the outbox: "
-            + str(drs_id)
-        )
-        super().__init__(message)
-
-
 class RetryAccessLaterError(RuntimeError):
     """Raised when trying to access a DRS object that is not yet in the outbox.
     Instructs to retry later."""
@@ -211,30 +181,3 @@ class DrsObjectRegistryService:
         await self._event_broadcaster.new_drs_object_registered(
             drs_object=drs_object_with_uri
         )
-
-    async def handle_staged_file(self, *, file_id: str, decrypted_sha256: str):
-        """Handles a new staged filed corresponding to a registered DRS object.
-
-        Args:
-            file_id: The ID of the file as referenced outside of this service.
-            decrypted_sha256: A content intentifier (usually checksum based).
-        """
-
-        # Check if file exists in database
-        try:
-            drs_object = await self._drs_object_dao.get_by_id(file_id)
-        except ResourceNotFoundError as error:
-            raise NoCorrespondingDrsObjectError(file_id=file_id) from error
-
-        if drs_object.decrypted_sha256 != decrypted_sha256:
-            raise ContentMissmatchError(
-                drs_id=drs_object.id,
-                observed_decrypted_sha256=decrypted_sha256,
-                expected_decrypted_sha256=drs_object.decrypted_sha256,
-            )
-
-        # Check if file is in outbox
-        if not await self._object_storage.does_object_exist(
-            bucket_id=self._config.outbox_bucket, object_id=file_id
-        ):
-            raise DrsObjectNotInOutbox(drs_id=drs_object.id)
