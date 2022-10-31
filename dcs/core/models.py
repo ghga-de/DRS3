@@ -19,13 +19,12 @@ in the api."""
 
 import re
 from datetime import datetime
-from typing import List, Literal
 
 from ghga_service_chassis_lib.object_storage_dao import (
     ObjectIdValidationError,
     validate_object_id,
 )
-from pydantic import UUID4, BaseModel, validator
+from pydantic import BaseModel, validator
 
 
 class FileToRegister(BaseModel):
@@ -33,13 +32,10 @@ class FileToRegister(BaseModel):
     A model containing the metadata needed to register a new DRS object.
     """
 
-    size: int
     file_id: str
-    content_id: str
+    decrypted_sha256: str
+    size: int
     creation_date: datetime
-    update_date: datetime
-    format: str
-    in_outbox: bool = False
 
     # pylint: disable=no-self-argument,no-self-use
     @validator("file_id")
@@ -58,57 +54,30 @@ class FileToRegister(BaseModel):
 
 class DrsObject(FileToRegister):
     """
-    A model for describing all DrsObject metadata.
-    Only intended for service-internal use.
+    A model for describing essential DRS object metadata.
     """
 
-    drs_id: str
+    id: str
 
 
-class AccessURL(BaseModel):
-    """Describes the URL for accessing the actual bytes of the object as per the
-    DRS OpenApi spec."""
+class DrsObjectWithUri(DrsObject):
+    """A model for describing DRS object metadata including a self URI."""
 
-    url: str
-
-
-class AccessMethod(BaseModel):
-    """A AccessMethod as per the DRS OpenApi spec."""
-
-    access_url: AccessURL
-    type: Literal["s3"] = "s3"  # currently only s3 is supported
-
-
-class Checksum(BaseModel):
-    """
-    A Checksum as per the DRS OpenApi specs.
-    """
-
-    checksum: str
-    type: Literal["md5", "sha-256"]
-
-
-class AccessibleDrsObject(BaseModel):
-    """
-    A model containing a DrsObject as per the DRS OpenApi specs.
-    This is used to serve metadata on a DrsObject (including the access methods) to the
-    user.
-    """
-
-    file_id: str  # the file ID
     self_uri: str
-    size: int
-    created_time: str
-    updated_time: str
-    checksums: List[Checksum]
-    access_methods: List[AccessMethod]
 
     # pylint: disable=no-self-argument,no-self-use
     @validator("self_uri")
     def check_self_uri(cls, value: str):
         """Checks if the self_uri is a valid DRS URI."""
 
-        if not re.match(r"^drs://.+\..+/.+", value):
+        if not re.match(r"^drs://.+/.+", value):
             ValueError(f"The self_uri '{value}' is no valid DRS URI.")
 
         return value
+
+
+class DrsObjectWithAccess(DrsObjectWithUri):
+    """A model for describing DRS object metadata including information on how to access
+    its content."""
+
+    access_url: str

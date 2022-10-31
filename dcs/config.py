@@ -35,7 +35,6 @@ class Config(
 
     service_name: str = "dcs"
     api_route: str = "/ga4gh/drs/v1"
-    drs_self_url: str = "drs://localhost:8080/"
     topic_name_stage_request: str = "non_staged_file_requested"
     topic_name_file_staged: str = "file_staged_for_download"
     topic_name_file_registered: str = "file-internally-registered"

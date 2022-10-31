@@ -38,5 +38,5 @@ class DrsObjectDaoConstructor:
             name="drs_objects",
             dto_model=models.DrsObject,
             dto_creation_model=models.FileToRegister,
-            id_field="drs_id",
+            id_field="id",
         )

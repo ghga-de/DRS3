@@ -15,14 +15,13 @@
 
 """Main business-logic of this service"""
 
-from attr import field
-from pydantic import BaseSettings
+import re
+from pydantic import BaseSettings, Field, validator
 
 from dcs.ports.outbound.event_broadcast import DrsEventBroadcasterPort
 from dcs.ports.outbound.dao import (
     DrsObjectDaoPort,
     ResourceNotFoundError,
-    ResourceAlreadyExistsError,
 )
 from dcs.ports.outbound.storage import ObjectStoragePort
 
@@ -51,12 +50,16 @@ class ContentMissmatchError(RuntimeError):
     right content ID."""
 
     def __init__(
-        self, *, drs_id: str, observed_content_id: str, expected_content_id: str
+        self,
+        *,
+        drs_id: str,
+        observed_decrypted_sha256: str,
+        expected_decrypted_sha256: str,
     ):
         message = (
             f"Missmatch of the content for DRS Object with the DRS ID {drs_id}:"
-            + f" got a content ID of {observed_content_id} but expected"
-            + f" {expected_content_id}"
+            + f" got a content ID of {observed_decrypted_sha256} but expected"
+            + f" {expected_decrypted_sha256}"
         )
         super().__init__(message)
 
@@ -72,10 +75,53 @@ class DrsObjectNotInOutbox(RuntimeError):
         super().__init__(message)
 
 
+class RetryAccessLaterError(RuntimeError):
+    """Raised when trying to access a DRS object that is not yet in the outbox.
+    Instructs to retry later."""
+
+    def __init__(self, *, retry_after: int):
+        """Configure with the seconds after which a retry is should be performed."""
+
+        self.retry_after = retry_after
+        message = (
+            "The requested DRS object is not yet accessible, please retry after"
+            + f" {self.retry_after} seconds."
+        )
+
+        super().__init__(message)
+
+
 class DrsObjectRegistryConfig(BaseSettings):
     """Config parameters needed for the DrsObjectRegistry."""
 
     outbox_bucket: str
+    drs_self_uri: str = Field(
+        ...,
+        description=(
+            "The base of the DRS URI to access DRS objects. Has to start with 'drs://'"
+            + " and end with '/'."
+        ),
+        example="drs://localhost:8080/",
+    )
+    retry_access_after: int = Field(
+        120,
+        description=(
+            "When trying to access a DRS object that is not yet in the outboxm instruct"
+            + " to retry after this many seconds."
+        ),
+    )
+
+    # pylint: disable=no-self-argument,no-self-use
+    @validator("drs_self_uri")
+    def check_self_uri(cls, value: str):
+        """Checks the drs_self_uri."""
+
+        if not re.match(r"^drs://.+/$", value):
+            ValueError(
+                f"The drs_self_uri has to start with 'drs://' and end with '/', got : {value}"
+            )
+
+        return value
 
 
 class DrsObjectRegistryService:
@@ -91,72 +137,87 @@ class DrsObjectRegistryService:
     ):
         """Initialize with essential config params and outbound adapters."""
 
-        self._outbox_bucket = config.outbox_bucket
+        self._config = config
         self._event_broadcaster = event_broadcaster
         self._drs_object_dao = drs_object_dao
         self._object_storage = object_storage
 
-    def serve_drs_object(self, *, drs_id: str) -> DrsObjectServe:
-        """
-        Gets the drs object for serving, if it exists in the outbox
-        """
+    def _get_drs_uri(self, *, drs_id: str) -> str:
+        """Construct DRS URI for the given DRS ID."""
 
-        with Database(config=config) as database:
-            try:
-                db_object_info = database.get_drs_object(drs_id)
-            except DrsObjectNotFoundError:  # pylint: disable=try-except-raise
-                raise
+        return f"{self._config.drs_self_uri}{drs_id}"
 
-        # If object exists in Database, see if it exists in outbox
+    def _get_model_with_self_uri(
+        self, *, drs_object: models.DrsObject
+    ) -> models.DrsObjectWithUri:
+        """Add the DRS self URI to an DRS object."""
 
-        bucket_id = config.s3_outbox_bucket_id
-
-        with ObjectStorage(config=config) as storage:
-
-            if storage.does_object_exist(bucket_id, drs_id):
-
-                # create presigned url
-                download_url = storage.get_object_download_url(bucket_id, drs_id)
-
-                # return DRS Object
-                return DrsObjectServe(
-                    file_id=drs_id,
-                    self_uri=f"{config.drs_self_url}/{drs_id}",
-                    size=db_object_info.size,
-                    created_time=db_object_info.creation_date.isoformat(),
-                    updated_time=db_object_info.creation_date.isoformat(),
-                    checksums=[
-                        Checksum(checksum=db_object_info.md5_checksum, type="md5")
-                    ],
-                    access_methods=[
-                        AccessMethod(access_url=AccessURL(url=download_url), type="s3")
-                    ],
-                )
-
-        # If the object does not exist, make a stage request
-        make_stage_request(
-            db_object_info,
-            config,
+        return models.DrsObjectWithUri(
+            **drs_object.dict(),
+            self_uri=self._get_drs_uri(drs_id=drs_object.id),
         )
 
-        return None
+    async def _get_access_model(
+        self, *, drs_object: models.DrsObject
+    ) -> models.DrsObjectWithAccess:
+        """Get a DRS Object model with access information."""
 
-    def registered_new_file(self, *, file_object: models.FileToRegister):
+        access_url = await self._object_storage.get_object_download_url(
+            bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
+        )
+
+        return models.DrsObjectWithAccess(
+            **drs_object.dict(),
+            self_uri=self._get_drs_uri(drs_id=drs_object.id),
+            access_url=access_url,
+        )
+
+    async def access_drs_object(self, *, drs_id: str) -> models.DrsObjectWithAccess:
+        """
+        Serve the specified DRS object with access information.
+        If it does not exists in the outbox, yet, a RetryAccessLaterError is raised that
+        instructs to retry the call after a specified amount of time.
+        """
+
+        # make sure that metadata for the DRS object exists in the database:
+        try:
+            drs_object = await self._drs_object_dao.get_by_id(drs_id)
+        except ResourceNotFoundError as error:
+            raise DrsObjectNotFoundError(drs_id=drs_id) from error
+
+        # check if the file corresponding to the DRS object is already in the outbox:
+        if not await self._object_storage.does_object_exist(
+            bucket_id=self._config.outbox_bucket, object_id=drs_id
+        ):
+            # publish an event to request a stage of the corresponding file:
+            drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
+            await self._event_broadcaster.unstaged_download_requested(
+                drs_object=drs_object_with_uri
+            )
+
+            # instruct to retry later:
+            raise RetryAccessLaterError(retry_after=self._config.retry_access_after)
+
+        return await self._get_access_model(drs_object=drs_object)
+
+    async def registered_new_file(self, *, file: models.FileToRegister):
         """Register a file as a new DRS Object."""
 
         # write file entry to database
-        with Database(config=config) as database:
-            database.register_drs_object(drs_object)
+        drs_object = await self._drs_object_dao.insert(file)
 
         # publish message that the drs file has been registered
-        publish_object_registered(drs_object, config)
+        drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
+        await self._event_broadcaster.new_drs_object_registered(
+            drs_object=drs_object_with_uri
+        )
 
-    async def handle_staged_file(self, *, file_id: str, content_id: str):
+    async def handle_staged_file(self, *, file_id: str, decrypted_sha256: str):
         """Handles a new staged filed corresponding to a registered DRS object.
 
         Args:
             file_id: The ID of the file as referenced outside of this service.
-            content_id: A content intentifier (usually checksum based).
+            decrypted_sha256: A content intentifier (usually checksum based).
         """
 
         # Check if file exists in database
@@ -165,19 +226,15 @@ class DrsObjectRegistryService:
         except ResourceNotFoundError as error:
             raise NoCorrespondingDrsObjectError(file_id=file_id) from error
 
-        if drs_object.content_id != content_id:
+        if drs_object.decrypted_sha256 != decrypted_sha256:
             raise ContentMissmatchError(
-                drs_id=drs_object.drs_id,
-                observed_content_id=content_id,
-                expected_content_id=drs_object.content_id,
+                drs_id=drs_object.id,
+                observed_decrypted_sha256=decrypted_sha256,
+                expected_decrypted_sha256=drs_object.decrypted_sha256,
             )
 
         # Check if file is in outbox
         if not await self._object_storage.does_object_exist(
-            bucket_id=self._outbox_bucket, object_id=file_id
+            bucket_id=self._config.outbox_bucket, object_id=file_id
         ):
-            raise DrsObjectNotInOutbox(drs_id=drs_object.drs_id)
-
-        # update DRS object metadata to indicate that is now in the outbox:
-        updated_drs_object = drs_object.copy(update={"in_outbox": True})
-        await self._drs_object_dao.update(updated_drs_object)
+            raise DrsObjectNotInOutbox(drs_id=drs_object.id)

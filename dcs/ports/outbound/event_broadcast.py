@@ -17,25 +17,29 @@
 
 from abc import ABC, abstractmethod
 
+from dcs.core import models
+
 
 class DrsEventBroadcasterPort(ABC):
     """A port through which DRS-specific events are communicated with the outside."""
 
     @abstractmethod
-    def download_served(self, *, file_id: str) -> None:
+    async def download_served(self, *, drs_object: models.DrsObjectWithUri) -> None:
         """Communicate the event of an download being served. This can be relevant for
         auditing purposes."""
         ...
 
     @abstractmethod
-    def unstaged_download_requested(self, *, file_id: str) -> None:
+    async def unstaged_download_requested(
+        self, *, drs_object: models.DrsObjectWithUri
+    ) -> None:
         """Communicates the event that a download was requested for a DRS object, that
         is not jet available in the outbox."""
         ...
 
     @abstractmethod
-    def new_file_registered(
-        self, *, drs_id: str, drs_self_uri: str, file_id: str
+    async def new_drs_object_registered(
+        self, *, drs_object: models.DrsObjectWithUri
     ) -> None:
         """Communicates the event that a file has been registered."""
         ...
