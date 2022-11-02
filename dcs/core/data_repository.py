@@ -17,6 +17,7 @@
 
 import re
 from pydantic import BaseSettings, Field, validator
+from dcs.ports.inbound.data_repository import DataRepositoryPort
 
 from dcs.ports.outbound.event_broadcast import DrsEventBroadcasterPort
 from dcs.ports.outbound.dao import (
@@ -28,41 +29,8 @@ from dcs.ports.outbound.storage import ObjectStoragePort
 from dcs.core import models
 
 
-class DrsObjectNotFoundError(RuntimeError):
-    """Raised when no DRS file was found with the specified DRS ID."""
-
-    def __init__(self, *, drs_id: str):
-        message = f"No DRS object with the following ID exists: {drs_id}"
-        super().__init__(message)
-
-
-class NoCorrespondingDrsObjectError(RuntimeError):
-    """Raised when trying to refer to a DRS object using an external file ID that is not
-    known."""
-
-    def __init__(self, *, file_id: str):
-        message = f"No DRS object matching the following file ID exists: {file_id}"
-        super().__init__(message)
-
-
-class RetryAccessLaterError(RuntimeError):
-    """Raised when trying to access a DRS object that is not yet in the outbox.
-    Instructs to retry later."""
-
-    def __init__(self, *, retry_after: int):
-        """Configure with the seconds after which a retry is should be performed."""
-
-        self.retry_after = retry_after
-        message = (
-            "The requested DRS object is not yet accessible, please retry after"
-            + f" {self.retry_after} seconds."
-        )
-
-        super().__init__(message)
-
-
-class DrsObjectRegistryConfig(BaseSettings):
-    """Config parameters needed for the DrsObjectRegistry."""
+class DataRepositoryConfig(BaseSettings):
+    """Config parameters needed for the DataRepository."""
 
     outbox_bucket: str
     drs_self_uri: str = Field(
@@ -94,13 +62,13 @@ class DrsObjectRegistryConfig(BaseSettings):
         return value
 
 
-class DrsObjectRegistryService:
+class DataRepository(DataRepositoryPort):
     """A service that manages a registry of DRS objects."""
 
     def __init__(
         self,
         *,
-        config: DrsObjectRegistryConfig,
+        config: DataRepositoryConfig,
         drs_object_dao: DrsObjectDaoPort,
         object_storage: ObjectStoragePort,
         event_broadcaster: DrsEventBroadcasterPort,
@@ -153,7 +121,7 @@ class DrsObjectRegistryService:
         try:
             drs_object = await self._drs_object_dao.get_by_id(drs_id)
         except ResourceNotFoundError as error:
-            raise DrsObjectNotFoundError(drs_id=drs_id) from error
+            raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
 
         # check if the file corresponding to the DRS object is already in the outbox:
         if not await self._object_storage.does_object_exist(
@@ -166,7 +134,9 @@ class DrsObjectRegistryService:
             )
 
             # instruct to retry later:
-            raise RetryAccessLaterError(retry_after=self._config.retry_access_after)
+            raise self.RetryAccessLaterError(
+                retry_after=self._config.retry_access_after
+            )
 
         return await self._get_access_model(drs_object=drs_object)
 

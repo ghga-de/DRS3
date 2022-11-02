@@ -22,15 +22,13 @@ from ghga_service_chassis_lib.config import config_from_yaml
 from ghga_service_chassis_lib.postgresql import PostgresqlConfigBase
 from ghga_service_chassis_lib.s3 import S3ConfigBase
 
-from dcs.core.drs_registry_service import DrsObjectRegistryConfig
+from dcs.core.data_repository import DataRepositoryConfig
 
 LogLevel = Literal["critical", "error", "warning", "info", "debug", "trace"]
 
 
 @config_from_yaml(prefix="dcs")
-class Config(
-    ApiConfigBase, PostgresqlConfigBase, S3ConfigBase, DrsObjectRegistryConfig
-):
+class Config(ApiConfigBase, PostgresqlConfigBase, S3ConfigBase, DataRepositoryConfig):
     """Config parameters and their defaults."""
 
     service_name: str = "dcs"

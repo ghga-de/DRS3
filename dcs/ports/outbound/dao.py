@@ -15,11 +15,8 @@
 
 """DAO translators for accessing the database."""
 
-from hexkit.protocols.dao import (
-    DaoSurrogateId,
-    ResourceNotFoundError,
-    ResourceAlreadyExistsError,
-)
+# pylint: disable=unused-import
+from hexkit.protocols.dao import DaoSurrogateId, ResourceNotFoundError  # noqa: F401
 
 from dcs.core import models
 

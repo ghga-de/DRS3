@@ -25,7 +25,7 @@ from ghga_service_chassis_lib.object_storage_dao_testing import ObjectFixture, c
 from ghga_service_chassis_lib.utils import TEST_FILE_PATHS
 from pydantic.types import UUID4
 
-from dcs import models
+from dcs.core import models
 
 from .config import DEFAULT_CONFIG
 
