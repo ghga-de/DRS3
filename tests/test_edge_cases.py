@@ -42,7 +42,7 @@ async def test_access_non_existing(
     # Setup DataRepository:
     config = DataRepositoryConfig(
         outbox_bucket="test-outbox",
-        drs_self_uri="http://localhost:1234/",  # a dummy, should not be requested
+        drs_server_uri="http://localhost:1234/",  # a dummy, should not be requested
         retry_access_after=1,
     )
     await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])

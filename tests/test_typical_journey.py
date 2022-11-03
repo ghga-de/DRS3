@@ -52,7 +52,7 @@ async def test_happy(
     # Setup DataRepository:
     config = DataRepositoryConfig(
         outbox_bucket="test-outbox",
-        drs_self_uri="http://localhost:1234/",  # a dummy, should not be requested
+        drs_server_uri="http://localhost:1234/",  # a dummy, should not be requested
         retry_access_after=1,
     )
     await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
@@ -68,7 +68,7 @@ async def test_happy(
     )
 
     # register new file for download:
-    await data_repo.registered_new_file(file=EXAMPLE_FILE)
+    await data_repo.register_new_file(file=EXAMPLE_FILE)
 
     # check for registration related event and get the newly inserted DRS object:
     event_broadcaster.new_drs_object_registered.assert_awaited_once()

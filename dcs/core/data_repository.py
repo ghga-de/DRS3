@@ -30,7 +30,7 @@ class DataRepositoryConfig(BaseSettings):
     """Config parameters needed for the DataRepository."""
 
     outbox_bucket: str
-    drs_self_uri: str = Field(
+    drs_server_uri: str = Field(
         ...,
         description=(
             "The base of the DRS URI to access DRS objects. Has to start with 'drs://'"
@@ -80,7 +80,7 @@ class DataRepository(DataRepositoryPort):
     def _get_drs_uri(self, *, drs_id: str) -> str:
         """Construct DRS URI for the given DRS ID."""
 
-        return f"{self._config.drs_self_uri}{drs_id}"
+        return f"{self._config.drs_server_uri}{drs_id}"
 
     def _get_model_with_self_uri(
         self, *, drs_object: models.DrsObject
@@ -137,7 +137,7 @@ class DataRepository(DataRepositoryPort):
 
         return await self._get_access_model(drs_object=drs_object)
 
-    async def registered_new_file(self, *, file: models.FileToRegister):
+    async def register_new_file(self, *, file: models.FileToRegister):
         """Register a file as a new DRS Object."""
 
         # write file entry to database
