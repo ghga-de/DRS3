@@ -34,7 +34,7 @@ class DrsEventBroadcasterPort(ABC):
         self, *, drs_object: models.DrsObjectWithUri
     ) -> None:
         """Communicates the event that a download was requested for a DRS object, that
-        is not jet available in the outbox."""
+        is not yet available in the outbox."""
         ...
 
     @abstractmethod
