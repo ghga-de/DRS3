@@ -36,6 +36,3 @@ class Config(ApiConfigBase, S3ConfigBase, DataRepositoryConfig):
     topic_name_file_staged: str = "file_staged_for_download"
     topic_name_file_registered: str = "file-internally-registered"
     topic_name_drs_object_registered: str = "drs-object-registered"
-
-
-CONFIG = Config()
