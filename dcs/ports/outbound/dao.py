@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""DAO translators for accessing the database."""
+"""DAO interface for accessing the database."""
 
 # pylint: disable=unused-import
 from hexkit.protocols.dao import DaoSurrogateId, ResourceNotFoundError  # noqa: F401

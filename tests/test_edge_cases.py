@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """Tests edge cases not covered by the typical journey test."""
+
 from unittest.mock import AsyncMock
 
 import pytest

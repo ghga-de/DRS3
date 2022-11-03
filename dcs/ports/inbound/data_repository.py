@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Main business-logic of this service"""
+"""Interface for managing and accessing DRS objects."""
 
 from abc import ABC, abstractmethod
 
@@ -24,7 +24,7 @@ class DataRepositoryPort(ABC):
     """A service that manages a registry of DRS objects."""
 
     class DrsObjectNotFoundError(RuntimeError):
-        """Raised when no DRS file was found with the specified DRS ID."""
+        """Raised when no DRS object was found with the specified DRS ID."""
 
         def __init__(self, *, drs_id: str):
             message = f"No DRS object with the following ID exists: {drs_id}"

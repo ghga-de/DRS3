@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Interfaces for object storage adapters and the exception they may throw."""
+"""Interface for broadcasting events to other services."""
 
 from abc import ABC, abstractmethod
 
