@@ -18,8 +18,8 @@
 from typing import Literal
 
 from ghga_service_chassis_lib.api import ApiConfigBase
-from ghga_service_chassis_lib.config import config_from_yaml
-from ghga_service_chassis_lib.s3 import S3ConfigBase
+from hexkit.config import config_from_yaml
+from hexkit.providers.s3 import S3Config
 
 from dcs.core.data_repository import DataRepositoryConfig
 
@@ -27,7 +27,7 @@ LogLevel = Literal["critical", "error", "warning", "info", "debug", "trace"]
 
 
 @config_from_yaml(prefix="dcs")
-class Config(ApiConfigBase, S3ConfigBase, DataRepositoryConfig):
+class Config(ApiConfigBase, S3Config, DataRepositoryConfig):
     """Config parameters and their defaults."""
 
     service_name: str = "dcs"

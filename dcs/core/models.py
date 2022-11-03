@@ -20,10 +20,6 @@ in the api."""
 import re
 from datetime import datetime
 
-from ghga_service_chassis_lib.object_storage_dao import (
-    ObjectIdValidationError,
-    validate_object_id,
-)
 from pydantic import BaseModel, validator
 
 
@@ -36,20 +32,6 @@ class FileToRegister(BaseModel):
     decrypted_sha256: str
     size: int
     creation_date: datetime
-
-    # pylint: disable=no-self-argument,no-self-use
-    @validator("file_id")
-    def check_file_id(cls, value: str):
-        """Checks if the file_id is valid for use as a s3 object id."""
-
-        try:
-            validate_object_id(value)
-        except ObjectIdValidationError as error:
-            raise ValueError(
-                f"File ID '{value}' cannot be used as a (S3) object id."
-            ) from error
-
-        return value
 
 
 class DrsObject(FileToRegister):
