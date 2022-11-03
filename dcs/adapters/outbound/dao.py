@@ -15,15 +15,12 @@
 
 """DAO translators for accessing the database."""
 
-from dataclasses import dataclass
-
 from hexkit.protocols.dao import DaoFactoryProtocol
 
 from dcs.core import models
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 
 
-@dataclass
 class DrsObjectDaoConstructor:
     """Constructor compatible with the hexkit.inject.AsyncConstructable type. Used to
     construct a DAO for interacting with DRS Object metadata in the database.
