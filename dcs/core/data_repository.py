@@ -47,13 +47,13 @@ class DataRepositoryConfig(BaseSettings):
     )
 
     # pylint: disable=no-self-argument,no-self-use
-    @validator("drs_self_uri")
-    def check_self_uri(cls, value: str):
-        """Checks the drs_self_uri."""
+    @validator("drs_server_uri")
+    def check_server_uri(cls, value: str):
+        """Checks the drs_server_uri."""
 
         if not re.match(r"^drs://.+/$", value):
             ValueError(
-                f"The drs_self_uri has to start with 'drs://' and end with '/', got : {value}"
+                f"The drs_server_uri has to start with 'drs://' and end with '/', got : {value}"
             )
 
         return value

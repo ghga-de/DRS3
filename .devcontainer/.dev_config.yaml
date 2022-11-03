@@ -8,7 +8,7 @@ cors_allow_credentials: False
 cors_allowed_methods: []
 cors_allowed_headers: []
 
-drs_self_uri: drs://localhost:8080/
+drs_server_uri: drs://localhost:8080/
 api_route: /ga4gh/drs/v1
 
 outbox_bucket: outbox

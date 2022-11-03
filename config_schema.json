@@ -10,12 +10,12 @@
       ],
       "type": "string"
     },
-    "drs_self_uri": {
-      "title": "Drs Self Uri",
+    "drs_server_uri": {
+      "title": "Drs Server Uri",
       "description": "The base of the DRS URI to access DRS objects. Has to start with 'drs://' and end with '/'.",
       "example": "drs://localhost:8080/",
       "env_names": [
-        "dcs_drs_self_uri"
+        "dcs_drs_server_uri"
       ],
       "type": "string"
     },
@@ -262,7 +262,7 @@
   },
   "required": [
     "outbox_bucket",
-    "drs_self_uri",
+    "drs_server_uri",
     "s3_endpoint_url",
     "s3_access_key_id",
     "s3_secret_access_key"
