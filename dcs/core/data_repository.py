@@ -16,17 +16,14 @@
 """Main business-logic of this service"""
 
 import re
-from pydantic import BaseSettings, Field, validator
-from dcs.ports.inbound.data_repository import DataRepositoryPort
 
-from dcs.ports.outbound.event_broadcast import DrsEventBroadcasterPort
-from dcs.ports.outbound.dao import (
-    DrsObjectDaoPort,
-    ResourceNotFoundError,
-)
-from dcs.ports.outbound.storage import ObjectStoragePort
+from pydantic import BaseSettings, Field, validator
 
 from dcs.core import models
+from dcs.ports.inbound.data_repository import DataRepositoryPort
+from dcs.ports.outbound.dao import DrsObjectDaoPort, ResourceNotFoundError
+from dcs.ports.outbound.event_broadcast import DrsEventBroadcasterPort
+from dcs.ports.outbound.storage import ObjectStoragePort
 
 
 class DataRepositoryConfig(BaseSettings):
@@ -125,7 +122,7 @@ class DataRepository(DataRepositoryPort):
 
         # check if the file corresponding to the DRS object is already in the outbox:
         if not await self._object_storage.does_object_exist(
-            bucket_id=self._config.outbox_bucket, object_id=drs_id
+            bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
         ):
             # publish an event to request a stage of the corresponding file:
             drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
