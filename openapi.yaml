@@ -113,12 +113,12 @@ info:
   version: 0.1.0
 openapi: 3.0.2
 paths:
-  /files/{file_id}:
+  /objects/{object_id}:
     get:
       description: Get info about a ``DrsObject``.
       operationId: getDrsObject
       parameters:
-      - in: query
+      - in: path
         name: object_id
         required: true
         schema:

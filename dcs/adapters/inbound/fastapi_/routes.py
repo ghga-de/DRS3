@@ -56,7 +56,7 @@ RESPONSES = {
 
 
 @router.get(
-    "/files/{file_id}",
+    "/objects/{object_id}",
     summary="Get file metadata including the current upload attempt.",
     operation_id="getDrsObject",
     status_code=status.HTTP_200_OK,
