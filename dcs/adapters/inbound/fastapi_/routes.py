@@ -31,9 +31,7 @@ router = APIRouter()
 
 
 class ObjectNotInOutboxModel(BaseModel):
-    """Pydantic model for 202 Response"""
-
-    message: str
+    """Pydantic model for 202 Response. Empty, since 202 has no body."""
 
 
 RESPONSES = {
@@ -46,7 +44,9 @@ RESPONSES = {
     },
     "objectNotInOutbox": {
         "description": (
-            "The requested DrsObject is not staged in the outbox. Retry later"
+            "The operation is delayed and will continue asynchronously. "
+            + "The client should retry this same request after the delay "
+            + "specified by Retry-After header."
         ),
         "model": ObjectNotInOutboxModel,
     },

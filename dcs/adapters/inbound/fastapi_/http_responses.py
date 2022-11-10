@@ -32,12 +32,9 @@ class HttpObjectNotInOutboxResponse(JSONResponse):
         *,
         status_code: int = 202,
         retry_after: int = 300,
-        message: str = "The object will be staged to the outbox. Please try again later."
     ):
 
         headers = {"Retry-After": retry_after}
 
         """Construct message and init the response."""
-        super().__init__(
-            status_code=status_code, headers=headers, content={"message": message}
-        )
+        super().__init__(status_code=status_code, headers=headers)

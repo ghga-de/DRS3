@@ -80,13 +80,8 @@ components:
       title: HttpObjectNotFoundErrorData
       type: object
     ObjectNotInOutboxModel:
-      description: Pydantic model for 202 Response
-      properties:
-        message:
-          title: Message
-          type: string
-      required:
-      - message
+      description: Pydantic model for 202 Response. Empty, since 202 has no body.
+      properties: {}
       title: HttpObjectNotFoundErrorData
       type: object
     ValidationError:
@@ -136,10 +131,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ObjectNotInOutboxModel'
-          description: 'Exceptions by ID:
-
-            - objectNotInOutbox: The requested DrsObject is not staged inthe outbox.
-            Retry later'
+          description: The operation is delayed and will continue asynchronously.
+            The client should retry this same request after the delay specified by
+            Retry-After header.
         '404':
           content:
             application/json:
