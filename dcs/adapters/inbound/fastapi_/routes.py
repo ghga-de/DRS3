@@ -46,9 +46,7 @@ RESPONSES = {
     },
     "objectNotInOutbox": {
         "description": (
-            "Exceptions by ID:"
-            + "\n- objectNotInOutbox: The requested DrsObject is not staged in"
-            + "the outbox. Retry later"
+            "The requested DrsObject is not staged in the outbox. Retry later"
         ),
         "model": ObjectNotInOutboxModel,
     },

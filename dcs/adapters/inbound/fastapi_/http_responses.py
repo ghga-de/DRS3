@@ -25,7 +25,7 @@ class HttpObjectNotInOutboxResponse(JSONResponse):
     Returned, when a file has not been staged to the outbox yet.
     """
 
-    exception_id = "objectNotInOutbox"
+    response_id = "objectNotInOutbox"
 
     def __init__(
         self,
