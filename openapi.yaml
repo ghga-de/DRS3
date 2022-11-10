@@ -125,7 +125,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DrsObjectWithAccess'
-          description: File metadata including the current upload attempt
+          description: The DrsObject was found successfully.
         '202':
           content:
             application/json:
@@ -148,4 +148,5 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-      summary: Get file metadata including the current upload attempt.
+      summary: Returns object metadata, and a list of access methods that can be used
+        to fetch object bytes.
