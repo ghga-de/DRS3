@@ -21,6 +21,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 import requests
+from fastapi import status
 from hexkit.providers.mongodb.testutils import mongodb_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
@@ -29,7 +30,6 @@ from hexkit.providers.s3.testutils import FileObject
 from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
 from dcs.core import models
 from dcs.core.data_repository import DataRepository, DataRepositoryConfig
-from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.event_broadcast import DrsEventBroadcasterPort
 from tests.fixtures.joint import joint_fixture  # noqa F811
 from tests.fixtures.joint import JointFixture
@@ -78,13 +78,9 @@ async def test_happy(
     assert drs_object.file_id == EXAMPLE_FILE.file_id
 
     # request access to the newly registered file:
-    try:
-        await joint_fixture.rest_client.get(f"/objects/{drs_object.file_id}")
-    except DataRepositoryPort.RetryAccessLaterError as error:
-        retry_after = error.retry_after
-        assert retry_after == config.retry_access_after
-    else:
-        raise AssertionError("Expected RetryAccessLaterError.")
+    response = await joint_fixture.rest_client.get(f"/objects/{drs_object.file_id}")
+    assert response.status_code == status.HTTP_202_ACCEPTED
+    retry_after = response.headers["Retry-After"]
 
     # wait for the specified time:
     sleep(retry_after)

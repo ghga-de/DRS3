@@ -40,7 +40,7 @@ class Container(ContainerBase):
 
     object_storage = get_constructor(S3ObjectStorage, config=config)
 
-    event_broadcaster = get_constructor(DrsEventBroadcaster, config=config)
+    event_broadcaster = get_constructor(DrsEventBroadcaster)
 
     data_repository = get_constructor(
         DataRepository,
