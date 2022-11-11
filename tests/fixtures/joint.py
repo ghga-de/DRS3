@@ -28,7 +28,8 @@ from typing import AsyncGenerator
 
 import httpx
 import pytest_asyncio
-from hexkit.providers.mongodb.testutils import MongoDbFixture, mongodb_fixture  # F401
+from hexkit.providers.mongodb.testutils import MongoDbFixture  # F401
+from hexkit.providers.mongodb.testutils import mongodb_fixture
 from hexkit.providers.s3.testutils import S3Fixture, s3_fixture
 
 from dcs.config import Config
@@ -66,7 +67,7 @@ async def joint_fixture(
 
     # create a DI container instance:translators
     async with get_configured_container(config=config) as container:
-        container.wire(modules=["ucs.adapters.inbound.fastapi_.routes"])
+        container.wire(modules=["dcs.adapters.inbound.fastapi_.routes"])
 
         # setup an API test client:
         api = get_rest_api(config=config)

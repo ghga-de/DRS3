@@ -53,6 +53,13 @@ RESPONSES = {
 }
 
 
+@router.get("/health", summary="health", status_code=status.HTTP_200_OK)
+async def health():
+    """Used to test if this service is alive"""
+
+    return {"status": "OK"}
+
+
 @router.get(
     "/objects/{object_id}",
     summary="Returns object metadata, and a list of access methods that can be used "

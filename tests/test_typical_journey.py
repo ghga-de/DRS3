@@ -21,8 +21,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 import requests
-from fastapi import status
+from hexkit.providers.mongodb.testutils import mongodb_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
+from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import FileObject
 
 from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
@@ -30,6 +31,7 @@ from dcs.core import models
 from dcs.core.data_repository import DataRepository, DataRepositoryConfig
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.event_broadcast import DrsEventBroadcasterPort
+from tests.fixtures.joint import joint_fixture  # noqa F811
 from tests.fixtures.joint import JointFixture
 
 EXAMPLE_FILE = models.FileToRegister(
@@ -41,18 +43,8 @@ EXAMPLE_FILE = models.FileToRegister(
 
 
 @pytest.mark.asyncio
-async def test_get_health(joint_fixture: JointFixture):  # noqa: F405
-    """Test the GET /health endpoint"""
-
-    response = await joint_fixture.rest_client.get("/health")
-
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"status": "OK"}
-
-
-@pytest.mark.asyncio
 async def test_happy(
-    joint_fixture: JointFixture,
+    joint_fixture: JointFixture,  # noqa: F811
     file_fixture: FileObject,  # noqa: F811
 ):
     """Simulates a typical, successful API journey."""
