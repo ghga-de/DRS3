@@ -21,6 +21,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 import requests
+from fastapi import status
 from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import FileObject
 
@@ -40,6 +41,16 @@ EXAMPLE_FILE = models.FileToRegister(
 
 
 @pytest.mark.asyncio
+async def test_get_health(joint_fixture: JointFixture):  # noqa: F405
+    """Test the GET /health endpoint"""
+
+    response = await joint_fixture.rest_client.get("/health")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {"status": "OK"}
+
+
+@pytest.mark.asyncio
 async def test_happy(
     joint_fixture: JointFixture,
     file_fixture: FileObject,  # noqa: F811
@@ -52,7 +63,6 @@ async def test_happy(
         drs_server_uri="http://localhost:1234/",  # a dummy, should not be requested
         retry_access_after=1,
     )
-    # TODO do this from fixture
     await joint_fixture.s3.populate_buckets(buckets=[config.outbox_bucket])
     drs_object_dao = await DrsObjectDaoConstructor.construct(
         dao_factory=joint_fixture.mongodb.dao_factory
@@ -78,8 +88,6 @@ async def test_happy(
     # request access to the newly registered file:
     try:
         await joint_fixture.rest_client.get(f"/objects/{drs_object.file_id}")
-
-        await data_repo.access_drs_object(drs_id=drs_object.id)
     except DataRepositoryPort.RetryAccessLaterError as error:
         retry_after = error.retry_after
         assert retry_after == config.retry_access_after
