@@ -32,7 +32,6 @@ def get_openapi_schema(api):
         title="Download Controller Service",
         version=__version__,
         description="A GA4GH drs compliant service for delivering files from S3.",
-        tags=[{"name": "DownloadControllerService"}],
         servers=[{"url": config.api_route}],
         routes=api.routes,
     )

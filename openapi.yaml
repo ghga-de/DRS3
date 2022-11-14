@@ -164,5 +164,3 @@ paths:
         to fetch object bytes.
 servers:
 - url: /ga4gh/drs/v1
-tags:
-- name: DownloadControllerService
