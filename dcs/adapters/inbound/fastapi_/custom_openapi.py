@@ -16,6 +16,8 @@
 """
 Utils to customize openAPI script
 """
+from typing import Any, Dict
+
 from fastapi.openapi.utils import get_openapi
 
 from dcs import __version__
@@ -24,7 +26,7 @@ from dcs.config import Config
 config = Config()
 
 
-def get_openapi_schema(api):
+def get_openapi_schema(api) -> Dict[str, Any]:
 
     """Generates a custom openapi schema for the service"""
 
