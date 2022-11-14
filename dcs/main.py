@@ -18,6 +18,7 @@
 from fastapi import FastAPI
 from ghga_service_chassis_lib.api import configure_app, run_server
 
+from dcs.adapters.inbound.fastapi_.custom_openapi import get_openapi_schema
 from dcs.adapters.inbound.fastapi_.routes import router
 from dcs.config import Config
 from dcs.container import Container
@@ -41,6 +42,15 @@ def get_rest_api(*, config: Config) -> FastAPI:
     api = FastAPI()
     api.include_router(router)
     configure_app(api, config=config)
+
+    def custom_openapi():
+        if api.openapi_schema:
+            return api.openapi_schema
+        openapi_schema = get_openapi_schema(api)
+        api.openapi_schema = openapi_schema
+        return api.openapi_schema
+
+    api.openapi = custom_openapi
 
     return api
 

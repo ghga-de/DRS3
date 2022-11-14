@@ -104,8 +104,9 @@ components:
       title: ValidationError
       type: object
 info:
-  title: FastAPI
-  version: 0.1.0
+  description: A GA4GH drs compliant service for delivering files from S3.
+  title: Download Controller Service
+  version: 0.3.0
 openapi: 3.0.2
 paths:
   /health:
@@ -161,3 +162,7 @@ paths:
           description: Validation Error
       summary: Returns object metadata, and a list of access methods that can be used
         to fetch object bytes.
+servers:
+- url: /ga4gh/drs/v1
+tags:
+- name: DownloadControllerService
