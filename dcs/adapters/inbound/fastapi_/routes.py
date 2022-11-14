@@ -30,7 +30,7 @@ from dcs.ports.inbound.data_repository import DataRepositoryPort
 router = APIRouter()
 
 
-class ObjectNotInOutboxModel(BaseModel):
+class DeliveryDelayedModel(BaseModel):
     """Pydantic model for 202 Response. Empty, since 202 has no body."""
 
 
@@ -48,7 +48,7 @@ RESPONSES = {
             + "The client should retry this same request after the delay "
             + "specified by Retry-After header."
         ),
-        "model": ObjectNotInOutboxModel,
+        "model": DeliveryDelayedModel,
     },
 }
 

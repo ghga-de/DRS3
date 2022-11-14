@@ -1,5 +1,10 @@
 components:
   schemas:
+    DeliveryDelayedModel:
+      description: Pydantic model for 202 Response. Empty, since 202 has no body.
+      properties: {}
+      title: HttpObjectNotFoundErrorData
+      type: object
     DrsObjectWithAccess:
       description: 'A model for describing DRS object metadata including information
         on how to access
@@ -79,11 +84,6 @@ components:
       - object_id
       title: HttpObjectNotFoundErrorData
       type: object
-    ObjectNotInOutboxModel:
-      description: Pydantic model for 202 Response. Empty, since 202 has no body.
-      properties: {}
-      title: HttpObjectNotFoundErrorData
-      type: object
     ValidationError:
       properties:
         loc:
@@ -142,7 +142,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ObjectNotInOutboxModel'
+                $ref: '#/components/schemas/DeliveryDelayedModel'
           description: The operation is delayed and will continue asynchronously.
             The client should retry this same request after the delay specified by
             Retry-After header.
