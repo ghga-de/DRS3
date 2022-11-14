@@ -85,7 +85,7 @@ async def test_happy(
     # place the requested file into the outbox bucket (it is not important here that
     # the file content matches the announced decrypted_sha256 checksum):
     file_object = file_fixture.copy(
-        update={"bucket_id": config.outbox_bucket, "object_id": drs_object.id}
+        update={"bucket_id": config.outbox_bucket, "object_id": drs_object.file_id}
     )
     await joint_fixture.s3.populate_file_objects([file_object])
 

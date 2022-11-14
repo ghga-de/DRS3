@@ -98,7 +98,7 @@ class DataRepository(DataRepositoryPort):
         """Get a DRS Object model with access information."""
 
         access_url = await self._object_storage.get_object_download_url(
-            bucket_id=self._config.outbox_bucket, object_id=drs_object.id
+            bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
         )
 
         return models.DrsObjectWithAccess(
@@ -122,7 +122,7 @@ class DataRepository(DataRepositoryPort):
 
         # check if the file corresponding to the DRS object is already in the outbox:
         if not await self._object_storage.does_object_exist(
-            bucket_id=self._config.outbox_bucket, object_id=drs_id
+            bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
         ):
             # publish an event to request a stage of the corresponding file:
             drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
