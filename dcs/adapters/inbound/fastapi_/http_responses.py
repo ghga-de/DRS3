@@ -34,7 +34,7 @@ class HttpObjectNotInOutboxResponse(JSONResponse):
         retry_after: int = 300,
     ):
 
-        headers = {"Retry-After": retry_after}
+        headers = {"Retry-After": str(retry_after)}
 
         """Construct message and init the response."""
         super().__init__(status_code=status_code, headers=headers)

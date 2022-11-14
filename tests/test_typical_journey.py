@@ -78,26 +78,26 @@ async def test_happy(
     assert drs_object.file_id == EXAMPLE_FILE.file_id
 
     # request access to the newly registered file:
-    response = await joint_fixture.rest_client.get(f"/objects/{drs_object.file_id}")
+    response = await joint_fixture.rest_client.get(f"/objects/{drs_object.id}")
     assert response.status_code == status.HTTP_202_ACCEPTED
-    retry_after = response.headers["Retry-After"]
-
-    # wait for the specified time:
-    sleep(retry_after)
+    retry_after = int(response.headers["Retry-After"])
 
     # place the requested file into the outbox bucket (it is not important here that
     # the file content matches the announced decrypted_sha256 checksum):
     file_object = file_fixture.copy(
-        update={"bucket_id": config.outbox_bucket, "object_id": EXAMPLE_FILE.file_id}
+        update={"bucket_id": config.outbox_bucket, "object_id": drs_object.id}
     )
     await joint_fixture.s3.populate_file_objects([file_object])
 
+    # wait for the specified time:
+    sleep(retry_after)
+
     # retry the access request:
-    drs_object_with_access = await joint_fixture.rest_client.get(
-        f"/objects/{drs_object.file_id}"
+    drs_object_response = await joint_fixture.rest_client.get(
+        f"/objects/{drs_object.id}"
     )
 
     # download file bytes:
-    response = requests.get(drs_object_with_access.access_url)
+    response = requests.get(drs_object_response.json()["access_url"])
     response.raise_for_status()
     assert response.content == file_object.content
