@@ -19,6 +19,8 @@
 # flake8: noqa
 # pylint: skip-file
 
+from typing import Any, Dict
+
 from fastapi import FastAPI
 
 from dcs.adapters.inbound.fastapi_.custom_openapi import get_openapi_schema
@@ -28,7 +30,7 @@ app = FastAPI()
 app.include_router(router)
 
 
-def custom_openapi():
+def custom_openapi() -> Dict[str, Any]:
     if app.openapi_schema:
         return app.openapi_schema
     openapi_schema = get_openapi_schema(app)
@@ -36,4 +38,4 @@ def custom_openapi():
     return app.openapi_schema
 
 
-app.openapi = custom_openapi
+app.openapi = custom_openapi  # type: ignore [assignment]

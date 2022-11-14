@@ -51,7 +51,7 @@ def get_rest_api(*, config: Config) -> FastAPI:
         api.openapi_schema = openapi_schema
         return api.openapi_schema
 
-    api.openapi = custom_openapi
+    api.openapi = custom_openapi  # type: ignore [assignment]
 
     return api
 
