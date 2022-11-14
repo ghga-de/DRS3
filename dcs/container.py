@@ -42,6 +42,7 @@ class Container(ContainerBase):
 
     event_broadcaster = get_constructor(DrsEventBroadcaster)
 
+# domain/core components:
     data_repository = get_constructor(
         DataRepository,
         drs_object_dao=drs_object_dao,
