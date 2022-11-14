@@ -34,7 +34,8 @@ def get_configured_container(*, config: Config) -> Container:
 
 
 def get_rest_api(*, config: Config) -> FastAPI:
-    """Creates a FastAPI app.
+    """
+    Creates a FastAPI app.
     For full functionality of the api, run in the context of an CI container with
     correct wireing and initialized resources (see the run_api function below).
     """

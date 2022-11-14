@@ -98,6 +98,6 @@ async def test_happy(
     )
 
     # download file bytes:
-    request_response = requests.get(drs_object_response.json()["access_url"])
-    request_response.raise_for_status()
-    assert request_response.content == file_object.content
+    dowloaded_file = requests.get(drs_object_response.json()["access_url"])
+    dowloaded_file.raise_for_status()
+    assert dowloaded_file.content == file_object.content

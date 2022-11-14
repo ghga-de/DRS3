@@ -26,19 +26,13 @@ class DrsEventBroadcaster(DrsEventBroadcasterPort):
         """Communicate the event of an download being served. This can be relevant for
         auditing purposes."""
 
-        pass  # pylint: disable=unnecessary-pass
-
     async def unstaged_download_requested(
         self, *, drs_object: models.DrsObjectWithUri
     ) -> None:
         """Communicates the event that a download was requested for a DRS object, that
         is not yet available in the outbox."""
 
-        pass  # pylint: disable=unnecessary-pass
-
     async def new_drs_object_registered(
         self, *, drs_object: models.DrsObjectWithUri
     ) -> None:
         """Communicates the event that a file has been registered."""
-
-        pass  # pylint: disable=unnecessary-pass
