@@ -19,7 +19,7 @@ from hexkit.inject import ContainerBase, get_configurator, get_constructor
 from hexkit.providers.mongodb import MongoDbDaoFactory
 
 from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
-from dcs.adapters.outbound.event_broadcast import DrsEventBroadcaster
+from dcs.adapters.outbound.event_pub import DrsEventBroadcaster
 from dcs.adapters.outbound.s3 import S3ObjectStorage
 from dcs.config import Config
 from dcs.core.data_repository import DataRepository

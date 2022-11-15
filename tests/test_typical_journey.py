@@ -30,7 +30,7 @@ from hexkit.providers.s3.testutils import FileObject
 from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
 from dcs.core import models
 from dcs.core.data_repository import DataRepository, DataRepositoryConfig
-from dcs.ports.outbound.event_broadcast import DrsEventBroadcasterPort
+from dcs.ports.outbound.event_pub import EventPublisherPort
 from tests.fixtures.joint import joint_fixture  # noqa F811
 from tests.fixtures.joint import JointFixture
 
@@ -59,7 +59,7 @@ async def test_happy(
     drs_object_dao = await DrsObjectDaoConstructor.construct(
         dao_factory=joint_fixture.mongodb.dao_factory
     )
-    event_broadcaster = AsyncMock(spec=DrsEventBroadcasterPort)
+    event_broadcaster = AsyncMock(spec=EventPublisherPort)
     data_repo = DataRepository(
         config=config,
         drs_object_dao=drs_object_dao,

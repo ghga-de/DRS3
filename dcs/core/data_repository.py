@@ -22,7 +22,7 @@ from pydantic import BaseSettings, Field, validator
 from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort, ResourceNotFoundError
-from dcs.ports.outbound.event_broadcast import DrsEventBroadcasterPort
+from dcs.ports.outbound.event_pub import EventPublisherPort
 from dcs.ports.outbound.storage import ObjectStoragePort
 
 
@@ -68,7 +68,7 @@ class DataRepository(DataRepositoryPort):
         config: DataRepositoryConfig,
         drs_object_dao: DrsObjectDaoPort,
         object_storage: ObjectStoragePort,
-        event_broadcaster: DrsEventBroadcasterPort,
+        event_broadcaster: EventPublisherPort,
     ):
         """Initialize with essential config params and outbound adapters."""
 
@@ -145,6 +145,4 @@ class DataRepository(DataRepositoryPort):
 
         # publish message that the drs file has been registered
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
-        await self._event_broadcaster.new_drs_object_registered(
-            drs_object=drs_object_with_uri
-        )
+        await self._event_broadcaster.file_registered(drs_object=drs_object_with_uri)
