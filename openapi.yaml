@@ -122,6 +122,8 @@ paths:
               schema: {}
           description: Successful Response
       summary: health
+      tags:
+      - DownloadControllerService
   /objects/{object_id}:
     get:
       description: Get info about a ``DrsObject``.

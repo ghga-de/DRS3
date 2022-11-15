@@ -53,7 +53,12 @@ RESPONSES = {
 }
 
 
-@router.get("/health", summary="health", status_code=status.HTTP_200_OK)
+@router.get(
+    "/health",
+    summary="health",
+    tags=["DownloadControllerService"],
+    status_code=status.HTTP_200_OK,
+)
 async def health():
     """Used to test if this service is alive"""
 
