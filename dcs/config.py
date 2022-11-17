@@ -26,6 +26,7 @@ from dcs.adapters.outbound.event_pub import EventPubTranslatorConfig
 from dcs.core.data_repository import DataRepositoryConfig
 
 
+# pylint: disable=too-many-ancestors
 @config_from_yaml(prefix="dcs")
 class Config(
     ApiConfigBase,
