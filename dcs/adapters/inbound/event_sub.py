@@ -28,7 +28,7 @@ from dcs.ports.inbound.data_repository import DataRepositoryPort
 class EventSubTranslatorConfig(BaseSettings):
     """Config for receiving events providing metadata on files."""
 
-    file_registration_topic: str = Field(
+    files_to_register_topic: str = Field(
         ...,
         description=(
             "The name of the topic to receive events informing about new files that shall"
@@ -36,13 +36,13 @@ class EventSubTranslatorConfig(BaseSettings):
         ),
         example="file_registry",
     )
-    file_registration_type: str = Field(
+    files_to_register_type: str = Field(
         ...,
         description=(
             "The type used for events informing about new files that shall"
             + " made available for download."
         ),
-        example="file_registration",
+        example="files_to_register",
     )
 
 
@@ -57,13 +57,13 @@ class EventSubTranslator(EventSubscriberProtocol):
     ):
         """Initialize with config parameters and core dependencies."""
 
-        self.topics_of_interest = [config.file_registration_topic]
-        self.types_of_interest = [config.file_registration_type]
+        self.topics_of_interest = [config.files_to_register_topic]
+        self.types_of_interest = [config.files_to_register_type]
 
         self._data_repository = data_repository
         self._config = config
 
-    async def _consume_file_registration(self, *, payload: JsonObject) -> None:
+    async def _consume_files_to_register(self, *, payload: JsonObject) -> None:
         """Consume file registration events."""
 
         validated_payload = get_validated_payload(
@@ -88,7 +88,7 @@ class EventSubTranslator(EventSubscriberProtocol):
     ) -> None:
         """Consume events from the topics of interest."""
 
-        if type_ == self._config.file_registration_type:
-            await self._consume_file_registration(payload=payload)
+        if type_ == self._config.files_to_register_type:
+            await self._consume_files_to_register(payload=payload)
         else:
             raise RuntimeError(f"Unexpected event of type: {type_}")

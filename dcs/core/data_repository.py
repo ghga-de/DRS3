@@ -120,12 +120,13 @@ class DataRepository(DataRepositoryPort):
         except ResourceNotFoundError as error:
             raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
 
+        drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
+
         # check if the file corresponding to the DRS object is already in the outbox:
         if not await self._object_storage.does_object_exist(
             bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
         ):
             # publish an event to request a stage of the corresponding file:
-            drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
             await self._event_publisher.unstaged_download_requested(
                 drs_object=drs_object_with_uri
             )
@@ -135,7 +136,12 @@ class DataRepository(DataRepositoryPort):
                 retry_after=self._config.retry_access_after
             )
 
-        return await self._get_access_model(drs_object=drs_object)
+        drs_object_with_access = await self._get_access_model(drs_object=drs_object)
+
+        # publish an event indicating the served download:
+        await self._event_publisher.download_served(drs_object=drs_object_with_uri)
+
+        return drs_object_with_access
 
     async def register_new_file(self, *, file: models.FileToRegister):
         """Register a file as a new DRS Object."""

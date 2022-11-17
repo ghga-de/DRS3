@@ -3,21 +3,21 @@
   "description": "Modifies the orginal Settings class provided by the user",
   "type": "object",
   "properties": {
-    "file_registration_topic": {
+    "files_to_register_topic": {
       "title": "File Registration Topic",
       "description": "The name of the topic to receive events informing about new files that shall made available for download.",
       "example": "file_registry",
       "env_names": [
-        "dcs_file_registration_topic"
+        "dcs_files_to_register_topic"
       ],
       "type": "string"
     },
-    "file_registration_type": {
+    "files_to_register_type": {
       "title": "File Registration Type",
       "description": "The type used for events informing about new files that shall made available for download.",
-      "example": "file_registration",
+      "example": "files_to_register",
       "env_names": [
-        "dcs_file_registration_type"
+        "dcs_files_to_register_type"
       ],
       "type": "string"
     },
@@ -344,8 +344,8 @@
     }
   },
   "required": [
-    "file_registration_topic",
-    "file_registration_type",
+    "files_to_register_topic",
+    "files_to_register_type",
     "service_instance_id",
     "kafka_servers",
     "db_connection_str",

@@ -23,5 +23,5 @@ db_name: "dev_db"
 service_instance_id: 001
 kafka_servers: ["kafka:9092"]
 
-file_registration_topic: file_registry
-file_registration_type: file_registration
+files_to_register_topic: file_registry
+files_to_register_type: files_to_register
