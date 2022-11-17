@@ -3,13 +3,14 @@ components:
     DeliveryDelayedModel:
       description: Pydantic model for 202 Response. Empty, since 202 has no body.
       properties: {}
-      title: HttpObjectNotFoundErrorData
+      title: DeliveryDelayedModel
       type: object
     DrsObjectWithAccess:
-      description: 'A model for describing DRS object metadata including information
+      description:
+        "A model for describing DRS object metadata including information
         on how to access
 
-        its content.'
+        its content."
       properties:
         access_url:
           title: Access Url
@@ -34,20 +35,20 @@ components:
           title: Self Uri
           type: string
       required:
-      - file_id
-      - decrypted_sha256
-      - decrypted_size
-      - creation_date
-      - id
-      - self_uri
-      - access_url
-      title: HttpObjectNotFoundErrorData
+        - file_id
+        - decrypted_sha256
+        - decrypted_size
+        - creation_date
+        - id
+        - self_uri
+        - access_url
+      title: DrsObjectWithAccess
       type: object
     HTTPValidationError:
       properties:
         detail:
           items:
-            $ref: '#/components/schemas/ValidationError'
+            $ref: "#/components/schemas/ValidationError"
           title: Detail
           type: array
       title: HTTPValidationError
@@ -57,22 +58,23 @@ components:
       description: A custom exception body model.
       properties:
         data:
-          $ref: '#/components/schemas/HttpObjectNotFoundErrorData'
+          $ref: "#/components/schemas/HttpObjectNotFoundErrorData"
         description:
-          description: A human readable message to the client explaining the cause
+          description:
+            A human readable message to the client explaining the cause
             of the exception.
           title: Description
           type: string
         exception_id:
           enum:
-          - noSuchObject
+            - noSuchObject
           title: Exception Id
           type: string
       required:
-      - data
-      - description
-      - exception_id
-      title: HttpObjectNotFoundErrorData
+        - data
+        - description
+        - exception_id
+      title: HttpObjectNotFoundError
       type: object
     HttpObjectNotFoundErrorData:
       description: Model for exception data
@@ -81,7 +83,7 @@ components:
           title: Object Id
           type: string
       required:
-      - object_id
+        - object_id
       title: HttpObjectNotFoundErrorData
       type: object
     ValidationError:
@@ -98,13 +100,14 @@ components:
           title: Error Type
           type: string
       required:
-      - loc
-      - msg
-      - type
+        - loc
+        - msg
+        - type
       title: ValidationError
       type: object
 info:
-  description: "A service managing access to file objects storedon an S3-compatible\
+  description:
+    "A service managing access to file objects storedon an S3-compatible\
     \ Object Storage. \n\nThis is an implementation of the DRS standard from the Global\
     \ Alliance for Genomics and Health, please find more information at: https://github.com/ga4gh/data-repository-service-schemas"
   title: Download Controller Service
@@ -116,59 +119,61 @@ paths:
       description: Used to test if this service is alive
       operationId: health_health_get
       responses:
-        '200':
+        "200":
           content:
             application/json:
               schema: {}
           description: Successful Response
       summary: health
       tags:
-      - DownloadControllerService
+        - DownloadControllerService
   /objects/{object_id}:
     get:
       description: Get info about a ``DrsObject``.
       operationId: getDrsObject
       parameters:
-      - in: path
-        name: object_id
-        required: true
-        schema:
-          title: Object Id
-          type: string
+        - in: path
+          name: object_id
+          required: true
+          schema:
+            title: Object Id
+            type: string
       responses:
-        '200':
+        "200":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DrsObjectWithAccess'
+                $ref: "#/components/schemas/DrsObjectWithAccess"
           description: The DrsObject was found successfully.
-        '202':
+        "202":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DeliveryDelayedModel'
-          description: The operation is delayed and will continue asynchronously.
+                $ref: "#/components/schemas/DeliveryDelayedModel"
+          description:
+            The operation is delayed and will continue asynchronously.
             The client should retry this same request after the delay specified by
             Retry-After header.
-        '404':
+        "404":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpObjectNotFoundError'
-          description: 'Exceptions by ID:
+                $ref: "#/components/schemas/HttpObjectNotFoundError"
+          description: "Exceptions by ID:
 
-            - noSuchUpload: The requested DrsObject wasn''t found'
-        '422':
+            - noSuchUpload: The requested DrsObject wasn't found"
+        "422":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HTTPValidationError'
+                $ref: "#/components/schemas/HTTPValidationError"
           description: Validation Error
-      summary: Returns object metadata, and a list of access methods that can be used
+      summary:
+        Returns object metadata, and a list of access methods that can be used
         to fetch object bytes.
       tags:
-      - DownloadControllerService
+        - DownloadControllerService
 servers:
-- url: /ga4gh/drs/v1
+  - url: /ga4gh/drs/v1
 tags:
-- name: DownloadControllerService
+  - name: DownloadControllerService
