@@ -6,7 +6,7 @@ cors_allow_credentials: false
 cors_allowed_headers: []
 cors_allowed_methods: []
 cors_allowed_origins: []
-db_connection_str: "**********"
+db_connection_str: '**********'
 db_name: dev_db
 docs_url: /docs
 download_served_event_topic: file_downloads
@@ -18,7 +18,7 @@ files_to_register_topic: file_registry
 files_to_register_type: files_to_register
 host: 127.0.0.1
 kafka_servers:
-  - kafka:9092
+- kafka:9092
 log_level: info
 openapi_url: /openapi.json
 outbox_bucket: outbox
@@ -26,9 +26,9 @@ port: 8080
 retry_access_after: 120
 s3_access_key_id: test
 s3_endpoint_url: http://dcs:4566
-s3_secret_access_key: "**********"
+s3_secret_access_key: '**********'
 s3_session_token: null
-service_instance_id: "1"
+service_instance_id: '1'
 service_name: dcs
 unstaged_download_event_topic: file_downloads
 unstaged_download_event_type: unstaged_download_requested

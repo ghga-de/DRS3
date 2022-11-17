@@ -4,7 +4,7 @@
   "type": "object",
   "properties": {
     "files_to_register_topic": {
-      "title": "File Registration Topic",
+      "title": "Files To Register Topic",
       "description": "The name of the topic to receive events informing about new files that shall made available for download.",
       "example": "file_registry",
       "env_names": [
@@ -13,7 +13,7 @@
       "type": "string"
     },
     "files_to_register_type": {
-      "title": "File Registration Type",
+      "title": "Files To Register Type",
       "description": "The type used for events informing about new files that shall made available for download.",
       "example": "files_to_register",
       "env_names": [
