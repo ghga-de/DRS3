@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Receive events informing about files that are expected to be uploaded."""
+"""Adapter for receiving events providing metadata on files"""
 
 from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_event_schemas.validation import get_validated_payload
@@ -26,23 +26,23 @@ from dcs.ports.inbound.data_repository import DataRepositoryPort
 
 
 class EventSubTranslatorConfig(BaseSettings):
-    """Config for receiving metadata on files to expect for upload."""
+    """Config for receiving events providing metadata on files."""
 
     file_registration_topic: str = Field(
         ...,
         description=(
-            "Name of the topic to receive new or changed metadata on files that shall"
-            + " be registered for uploaded."
+            "The name of the topic to receive events informing about new files that shall"
+            + " made available for download."
         ),
-        example="metadata",
+        example="file_registry",
     )
     file_registration_type: str = Field(
         ...,
         description=(
-            "The type used for events to receive new or changed metadata on files that"
-            + " are expected to be uploaded."
+            "The type used for events informing about new files that shall"
+            + " made available for download."
         ),
-        example="file_metadata_upserts",
+        example="file_registration",
     )
 
 
@@ -53,14 +53,14 @@ class EventSubTranslator(EventSubscriberProtocol):
     def __init__(
         self,
         config: EventSubTranslatorConfig,
-        data_repo: DataRepositoryPort,
+        data_repository: DataRepositoryPort,
     ):
         """Initialize with config parameters and core dependencies."""
 
         self.topics_of_interest = [config.file_registration_topic]
         self.types_of_interest = [config.file_registration_type]
 
-        self._data_repo = data_repo
+        self._data_repository = data_repository
         self._config = config
 
     async def _consume_file_registration(self, *, payload: JsonObject) -> None:
@@ -77,7 +77,7 @@ class EventSubTranslator(EventSubscriberProtocol):
             creation_date=validated_payload.upload_date,
         )
 
-        await self._data_repo.register_new_file(file=file)
+        await self._data_repository.register_new_file(file=file)
 
     async def _consume_validated(
         self,

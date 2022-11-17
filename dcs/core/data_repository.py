@@ -68,12 +68,12 @@ class DataRepository(DataRepositoryPort):
         config: DataRepositoryConfig,
         drs_object_dao: DrsObjectDaoPort,
         object_storage: ObjectStoragePort,
-        event_broadcaster: EventPublisherPort,
+        event_publisher: EventPublisherPort,
     ):
         """Initialize with essential config params and outbound adapters."""
 
         self._config = config
-        self._event_broadcaster = event_broadcaster
+        self._event_publisher = event_publisher
         self._drs_object_dao = drs_object_dao
         self._object_storage = object_storage
 
@@ -126,7 +126,7 @@ class DataRepository(DataRepositoryPort):
         ):
             # publish an event to request a stage of the corresponding file:
             drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
-            await self._event_broadcaster.unstaged_download_requested(
+            await self._event_publisher.unstaged_download_requested(
                 drs_object=drs_object_with_uri
             )
 
@@ -145,4 +145,4 @@ class DataRepository(DataRepositoryPort):
 
         # publish message that the drs file has been registered
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
-        await self._event_broadcaster.file_registered(drs_object=drs_object_with_uri)
+        await self._event_publisher.file_registered(drs_object=drs_object_with_uri)
