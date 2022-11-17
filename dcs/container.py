@@ -16,13 +16,13 @@
 """Module hosting the dependency injection container."""
 
 from hexkit.inject import ContainerBase, get_configurator, get_constructor
-from hexkit.providers.mongodb import MongoDbDaoFactory
 from hexkit.providers.akafka import KafkaEventPublisher, KafkaEventSubscriber
+from hexkit.providers.mongodb import MongoDbDaoFactory
 
+from dcs.adapters.inbound.event_sub import EventSubTranslator
 from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
 from dcs.adapters.outbound.event_pub import EventPubTranslator
 from dcs.adapters.outbound.s3 import S3ObjectStorage
-from dcs.adapters.inbound.event_sub import EventSubTranslator
 from dcs.config import Config
 from dcs.core.data_repository import DataRepository
 
@@ -38,7 +38,7 @@ class Container(ContainerBase):
 
     # outbound translators:
     drs_object_dao = get_constructor(DrsObjectDaoConstructor, dao_factory=dao_factory)
-    event_pub_translator = get_constructor(
+    event_publisher = get_constructor(
         EventPubTranslator, config=config, provider=event_pub_provider
     )
 
@@ -50,7 +50,7 @@ class Container(ContainerBase):
         DataRepository,
         drs_object_dao=drs_object_dao,
         object_storage=object_storage,
-        event_publisher=event_pub_translator,
+        event_publisher=event_publisher,
         config=config,
     )
 
@@ -62,6 +62,6 @@ class Container(ContainerBase):
     )
 
     # inbound providers:
-    kafka_event_subscriber = get_constructor(
+    event_subscriber = get_constructor(
         KafkaEventSubscriber, config=config, translator=event_sub_translator
     )

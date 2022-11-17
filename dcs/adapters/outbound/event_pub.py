@@ -17,9 +17,9 @@
 
 import json
 
-from pydantic import BaseSettings, Field
-from hexkit.protocols.eventpub import EventPublisherProtocol
 from ghga_event_schemas import pydantic_ as event_schemas
+from hexkit.protocols.eventpub import EventPublisherProtocol
+from pydantic import BaseSettings, Field
 
 from dcs.core import models
 from dcs.ports.outbound.event_pub import EventPublisherPort

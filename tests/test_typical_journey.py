@@ -31,14 +31,13 @@ from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
 from dcs.core import models
 from dcs.core.data_repository import DataRepository, DataRepositoryConfig
 from dcs.ports.outbound.event_pub import EventPublisherPort
-from tests.fixtures.joint import joint_fixture  # noqa F811
-from tests.fixtures.joint import JointFixture
+from tests.fixtures.joint import *
 
 EXAMPLE_FILE = models.FileToRegister(
     file_id="examplefile001",
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
     creation_date=datetime.now(),
-    size=12345,
+    decrypted_size=12345,
 )
 
 
@@ -59,21 +58,21 @@ async def test_happy(
     drs_object_dao = await DrsObjectDaoConstructor.construct(
         dao_factory=joint_fixture.mongodb.dao_factory
     )
-    event_broadcaster = AsyncMock(spec=EventPublisherPort)
+    event_publisher = AsyncMock(spec=EventPublisherPort)
     data_repo = DataRepository(
         config=config,
         drs_object_dao=drs_object_dao,
         object_storage=joint_fixture.s3.storage,
-        event_broadcaster=event_broadcaster,
+        event_publisher=event_publisher,
     )
 
     # register new file for download:
     await data_repo.register_new_file(file=EXAMPLE_FILE)
 
     # check for registration related event and get the newly inserted DRS object:
-    event_broadcaster.new_drs_object_registered.assert_awaited_once()
+    event_publisher.new_drs_object_registered.assert_awaited_once()
     drs_object: models.DrsObjectWithUri = (
-        event_broadcaster.new_drs_object_registered.await_args.kwargs["drs_object"]
+        event_publisher.new_drs_object_registered.await_args.kwargs["drs_object"]
     )
     assert drs_object.file_id == EXAMPLE_FILE.file_id
 
