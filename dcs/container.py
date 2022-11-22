@@ -42,7 +42,7 @@ class Container(ContainerBase):
         EventPubTranslator, config=config, provider=event_pub_provider
     )
 
-    # outbound adapters (not following the triple hexagonal translator/provider
+    # outbound adapters (not following the triple hexagonal translator/provider)
     object_storage = get_constructor(S3ObjectStorage, config=config)
 
     # domain/core components:
