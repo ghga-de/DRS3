@@ -5,7 +5,7 @@
   "properties": {
     "files_to_register_topic": {
       "title": "Files To Register Topic",
-      "description": "The name of the topic to receive events informing about new files that shall made available for download.",
+      "description": "The name of the topic to receive events informing about new files that shall be made available for download.",
       "example": "file_registry",
       "env_names": [
         "dcs_files_to_register_topic"
@@ -14,7 +14,7 @@
     },
     "files_to_register_type": {
       "title": "Files To Register Type",
-      "description": "The type used for events informing about new files that shall made available for download.",
+      "description": "The type used for events informing about new files that shall be made available for download.",
       "example": "files_to_register",
       "env_names": [
         "dcs_files_to_register_type"
