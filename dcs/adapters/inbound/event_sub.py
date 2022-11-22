@@ -32,7 +32,7 @@ class EventSubTranslatorConfig(BaseSettings):
         ...,
         description=(
             "The name of the topic to receive events informing about new files that shall"
-            + " made available for download."
+            + " be made available for download."
         ),
         example="file_registry",
     )
