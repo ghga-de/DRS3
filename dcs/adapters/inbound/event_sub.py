@@ -40,7 +40,7 @@ class EventSubTranslatorConfig(BaseSettings):
         ...,
         description=(
             "The type used for events informing about new files that shall"
-            + " made available for download."
+            + " be made available for download."
         ),
         example="files_to_register",
     )
