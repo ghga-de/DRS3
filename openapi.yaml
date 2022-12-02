@@ -15,7 +15,6 @@ components:
           title: Access Url
           type: string
         creation_date:
-          format: date-time
           title: Creation Date
           type: string
         decrypted_sha256:
