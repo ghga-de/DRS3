@@ -37,7 +37,7 @@ def call_eks_api(*, secret_id: bytes, receiver_public_key: str, api_url: str) ->
     if status_code != 200:
         spec = {
             404: {"secretNotFoundError": exceptions.SecretNotFoundError},
-            403: {"envelopeDecryptionError": exceptions.BadResponseCodeError},
+            1: {"dummy": exceptions.BadResponseCodeError},
         }
         ResponseExceptionTranslator(spec=spec).handle(response=response)
         raise exceptions.BadResponseCodeError(url=api_url, response_code=status_code)
