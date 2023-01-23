@@ -35,6 +35,7 @@ def call_eks_api(*, secret_id: bytes, receiver_public_key: str, api_url: str) ->
     status_code = response.status_code
     # implement httpyexpect error conversion
     if status_code != 200:
+        # if spec has only one entry, mypy throws errors.
         spec = {
             404: {"secretNotFoundError": exceptions.SecretNotFoundError},
             1: {"dummy": exceptions.BadResponseCodeError},
