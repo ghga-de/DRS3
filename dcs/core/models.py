@@ -35,9 +35,9 @@ class Download(BaseModel):
 
     @validator("expiration_datetime")
     @classmethod
-    def check_datetime_format(cls, upload_date):
+    def check_datetime_format(cls, expiration_datetime):
         """Ensure provided date string can be interpreted as datetime"""
-        return validated_date(upload_date)
+        return validated_date(expiration_datetime)
 
 
 class Envelope(BaseModel):
@@ -51,9 +51,9 @@ class Envelope(BaseModel):
 
     @validator("creation_timestamp")
     @classmethod
-    def check_datetime_format(cls, upload_date):
+    def check_datetime_format(cls, creation_timestamp):
         """Ensure provided date string can be interpreted as datetime"""
-        return validated_date(upload_date)
+        return validated_date(creation_timestamp)
 
 
 class FileToRegister(BaseModel):
