@@ -46,7 +46,9 @@ class DataRepositoryPort(ABC):
             super().__init__(message)
 
     @abstractmethod
-    async def access_drs_object(self, *, drs_id: str) -> models.DrsObjectWithAccess:
+    async def access_drs_object(
+        self, *, drs_id: str, public_key: str
+    ) -> models.DrsObjectWithAccess:
         """
         Serve the specified DRS object with access information.
         If it does not exists in the outbox, yet, a RetryAccessLaterError is raised that

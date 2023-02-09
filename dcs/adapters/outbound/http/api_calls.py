@@ -23,7 +23,7 @@ from dcs.adapters.outbound.http import exceptions
 from dcs.adapters.outbound.http.exception_translation import ResponseExceptionTranslator
 
 
-def call_eks_api(*, secret_id: bytes, receiver_public_key: str, api_url: str) -> bytes:
+def call_eks_api(*, secret_id: str, receiver_public_key: str, api_url: str) -> bytes:
     """Calls EKS to get an envelope for an encrypted file, using the receivers
     public key as well as the id of the file secret."""
     request_body = {"secret_id": secret_id, "client_pk": receiver_public_key}

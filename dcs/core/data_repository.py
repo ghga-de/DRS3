@@ -15,13 +15,22 @@
 
 """Main business-logic of this service"""
 
+import hashlib
+import os
 import re
+from datetime import datetime, timedelta
 
 from pydantic import BaseSettings, Field, validator
 
+from dcs.adapters.outbound.http.api_calls import call_eks_api
 from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
-from dcs.ports.outbound.dao import DrsObjectDaoPort, ResourceNotFoundError
+from dcs.ports.outbound.dao import (
+    DownloadDaoPort,
+    DrsObjectDaoPort,
+    EnvelopeDaoPort,
+    ResourceNotFoundError,
+)
 from dcs.ports.outbound.event_pub import EventPublisherPort
 from dcs.ports.outbound.storage import ObjectStoragePort
 
@@ -66,7 +75,9 @@ class DataRepository(DataRepositoryPort):
         self,
         *,
         config: DataRepositoryConfig,
+        download_dao: DownloadDaoPort,
         drs_object_dao: DrsObjectDaoPort,
+        envelope_dao: EnvelopeDaoPort,
         object_storage: ObjectStoragePort,
         event_publisher: EventPublisherPort,
     ):
@@ -74,8 +85,46 @@ class DataRepository(DataRepositoryPort):
 
         self._config = config
         self._event_publisher = event_publisher
+        self._download_dao = download_dao
         self._drs_object_dao = drs_object_dao
+        self._envelope_dao = envelope_dao
         self._object_storage = object_storage
+
+    async def _get_envelope(self, *, secret_id: str, envelope_id: str, public_key: str):
+        """TODO"""
+        try:
+            envelope = await self._envelope_dao.get_by_id(id_=envelope_id)
+        except ResourceNotFoundError:
+            # TODO: try - except
+            envelope_header = call_eks_api(
+                secret_id=secret_id, receiver_public_key=public_key, api_url=""
+            )
+            envelope = models.Envelope(
+                id=envelope_id,
+                header=envelope_header,
+                offset=len(envelope_header),
+                creation_timestamp=datetime.utcnow().isoformat(),
+            )
+            # TODO: try - except
+            await self._envelope_dao.insert(dto=envelope)
+
+    def _generate_download_url(self, *, file_id: str, envelope_id: str):
+        """TODO"""
+        download_id = os.urandom(32).hex()
+        signature = os.urandom(32).hex()
+
+        expiration_datetime = datetime.utcnow() + timedelta(seconds=30)
+
+        download = models.Download(
+            id=download_id,
+            file_id=file_id,
+            envelope_id=envelope_id,
+            signature_hash=hashlib.sha256(signature).hexdigest(),
+            expiration_datetime=expiration_datetime.isoformat(),
+        )
+        # TODO: try-except
+        self._download_dao.insert(dto=download)
+        return f"downloads/{download_id}/?signature={signature}"
 
     def _get_drs_uri(self, *, drs_id: str) -> str:
         """Construct DRS URI for the given DRS ID."""
@@ -107,7 +156,9 @@ class DataRepository(DataRepositoryPort):
             access_url=access_url,
         )
 
-    async def access_drs_object(self, *, drs_id: str) -> models.DrsObjectWithAccess:
+    async def access_drs_object(
+        self, *, drs_id: str, public_key: str
+    ) -> models.DrsObjectWithAccess:
         """
         Serve the specified DRS object with access information.
         If it does not exists in the outbox, yet, a RetryAccessLaterError is raised that
@@ -135,6 +186,17 @@ class DataRepository(DataRepositoryPort):
             raise self.RetryAccessLaterError(
                 retry_after=self._config.retry_access_after
             )
+
+        file_id = drs_object_with_uri.file_id
+        envelope_id = hashlib.sha256(file_id + public_key).hexdigest()
+
+        await self._get_envelope(
+            secret_id=drs_object_with_uri.decryption_secret_id,
+            envelope_id=envelope_id,
+            public_key=public_key,
+        )
+
+        self._generate_download_url(file_id=file_id, envelope_id=envelope_id)
 
         drs_object_with_access = await self._get_access_model(drs_object=drs_object)
 

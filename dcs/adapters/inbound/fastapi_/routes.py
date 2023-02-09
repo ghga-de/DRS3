@@ -19,7 +19,7 @@ Module containing the main FastAPI router and all route functions.
 """
 
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Header, status
 from pydantic import BaseModel
 
 from dcs.adapters.inbound.fastapi_ import http_exceptions, http_responses
@@ -82,6 +82,7 @@ async def health():
 @inject
 async def get_drs_object(
     object_id: str,
+    public_key: str = Header(...),
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
@@ -89,7 +90,9 @@ async def get_drs_object(
     """
 
     try:
-        drs_object = await data_repository.access_drs_object(drs_id=object_id)
+        drs_object = await data_repository.access_drs_object(
+            drs_id=object_id, public_key=public_key
+        )
         return drs_object
 
     except data_repository.RetryAccessLaterError as retry_later_error:
