@@ -54,7 +54,9 @@ class Container(ContainerBase):
     # domain/core components:
     data_repository = get_constructor(
         DataRepository,
+        download_dao=download_dao,
         drs_object_dao=drs_object_dao,
+        envelope_dao=envelope_dao,
         object_storage=object_storage,
         event_publisher=event_publisher,
         config=config,

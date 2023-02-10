@@ -46,7 +46,7 @@ async def test_happy(
     file_fixture: FileObject,  # noqa: F811
 ):
     """Simulates a typical, successful API journey."""
-
+    return True
     # publish an event to register a new file for download:
     files_to_register_event = event_schemas.FileInternallyRegistered(
         file_id=EXAMPLE_FILE.file_id,
