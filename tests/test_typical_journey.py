@@ -46,6 +46,7 @@ async def test_happy(
     file_fixture: FileObject,  # noqa: F811
 ):
     """Simulates a typical, successful API journey."""
+    # TODO: not working for now, will be fixed in GDEV-1612
     return True
     # publish an event to register a new file for download:
     files_to_register_event = event_schemas.FileInternallyRegistered(
