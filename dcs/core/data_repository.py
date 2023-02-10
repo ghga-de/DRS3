@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseSettings, Field, validator
 
 from dcs.adapters.outbound.http import exceptions
-from dcs.adapters.outbound.http.api_calls import call_eks_api
+from dcs.adapters.outbound.http.api_calls import call_ekss_api
 from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import (
@@ -43,18 +43,20 @@ class DataRepositoryConfig(BaseSettings):
     outbox_bucket: str
     drs_server_uri: str = Field(
         ...,
-        description=(
-            "The base of the DRS URI to access DRS objects. Has to start with 'drs://'"
-            + " and end with '/'."
-        ),
+        description="The base of the DRS URI to access DRS objects. Has to start with 'drs://'"
+        + " and end with '/'.",
         example="drs://localhost:8080/",
     )
     retry_access_after: int = Field(
         120,
-        description=(
-            "When trying to access a DRS object that is not yet in the outbox, instruct"
-            + " to retry after this many seconds."
-        ),
+        description="When trying to access a DRS object that is not yet in the outbox, instruct"
+        + " to retry after this many seconds.",
+    )
+    ekss_base_url: str = Field(
+        ...,
+        description="URL containing host and port of the EKSS endpoint to retrieve"
+        + " personalized envelope from",
+        example="http://ekss:8080/",
     )
 
     # pylint: disable=no-self-argument
@@ -93,23 +95,24 @@ class DataRepository(DataRepositoryPort):
         self._object_storage = object_storage
 
     async def _check_envelope(
-        self, *, secret_id: str, envelope_id: str, public_key: str
+        self, *, secret_id: str, envelope_id: str, public_key: str, api_base: str
     ):
         """Checks if an DB entry exists for the envelope id and creates one, if not"""
-        api_url = ""
         try:
             await self._envelope_dao.get_by_id(id_=envelope_id)
         except ResourceNotFoundError:
             try:
-                envelope_header = call_eks_api(
-                    secret_id=secret_id, receiver_public_key=public_key, api_url=api_url
+                envelope_header = call_ekss_api(
+                    secret_id=secret_id,
+                    receiver_public_key=public_key,
+                    api_base=api_base,
                 )
             except exceptions.BadResponseCodeError as error:
                 raise self.UnexpectedAPIResponseError(
-                    api_url=api_url, response_code=error.response_code
+                    api_url=api_base, response_code=error.response_code
                 ) from error
             except exceptions.RequestFailedError as error:
-                raise self.APICommunicationError(api_url=api_url) from error
+                raise self.APICommunicationError(api_url=api_base) from error
             except exceptions.SecretNotFoundError as error:
                 raise self.SecretNotFoundError(message=str(error)) from error
 
@@ -210,6 +213,7 @@ class DataRepository(DataRepositoryPort):
             secret_id=drs_object_with_uri.decryption_secret_id,
             envelope_id=envelope_id,
             public_key=public_key,
+            api_base=self._config.ekss_base_url,
         )
 
         download_uri = await self._generate_download_uri(
