@@ -29,7 +29,6 @@ from tests.fixtures.joint import *  # noqa: F403
 async def test_get_health(joint_fixture: JointFixture):  # noqa: F811, F405
     """Test the GET /health endpoint"""
 
-    return True
     response = await joint_fixture.rest_client.get("/health")
 
     assert response.status_code == status.HTTP_200_OK
