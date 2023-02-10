@@ -36,6 +36,7 @@ EXAMPLE_FILE = models.FileToRegister(
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
     creation_date=datetime.now().isoformat(),
     decrypted_size=12345,
+    decryption_secret_id="some-secret",
 )
 
 

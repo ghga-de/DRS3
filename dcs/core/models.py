@@ -27,7 +27,7 @@ class Download(BaseModel):
     """Model for ongoing downloads"""
 
     id: str
-    object_id: str
+    file_id: str
     envelope_id: str
     signature_hash: str
     # lifetime should expire 30s after creation

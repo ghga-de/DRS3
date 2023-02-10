@@ -105,3 +105,16 @@ async def get_drs_object(
         raise http_exceptions.HttpObjectNotFoundError(
             object_id=object_id
         ) from object_not_found_error
+
+    except (
+        data_repository.APICommunicationError,
+        data_repository.SecretNotFoundError,
+        data_repository.UnexpectedAPIResponseError,
+    ) as external_api_error:
+        raise http_exceptions.HttpExternalAPIError(
+            description=str(external_api_error)
+        ) from external_api_error
+    except data_repository.DuplicateEntryError as db_interaction_error:
+        raise http_exceptions.HttpDBInteractionError(
+            description=str(db_interaction_error)
+        ) from db_interaction_error
