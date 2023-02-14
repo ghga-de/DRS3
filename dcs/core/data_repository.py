@@ -20,11 +20,12 @@ import os
 import re
 from datetime import datetime, timedelta
 
+import requests
 from pydantic import BaseSettings, Field, validator
 
 from dcs.adapters.outbound.http import exceptions
 from dcs.adapters.outbound.http.api_calls import call_ekss_api
-from dcs.core import models
+from dcs.core import models, ranges
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import (
     DownloadDaoPort,
@@ -149,6 +150,40 @@ class DataRepository(DataRepositoryPort):
         host = self._config.drs_server_uri.replace("drs://", "http://")
         return f"{host}downloads/{download_id}/?signature={signature}"
 
+    async def _get_envelope_data(self, *, download_id: str, signature: str):
+        """
+        Checks if the request download exists and the link is not yet expired, then
+        retrieves envelope data.
+
+        :returns: IDs of the envelope and file_id corresponding to the requested download
+        """
+
+        try:
+            current_part_download = await self._download_dao.get_by_id(download_id)
+        except ResourceNotFoundError as error:
+            raise self.DownloadNotFoundError() from error
+
+        if not current_part_download.signature_hash == hashlib.sha256(signature):
+            raise self.DownloadNotFoundError()
+
+        expiration_datetime = datetime.fromisoformat(
+            current_part_download.expiration_datetime
+        )
+        now = datetime.utcnow()
+        duration = expiration_datetime - now
+
+        if duration.total_seconds <= 0:
+            raise self.DonwloadLinkExpired()
+
+        try:
+            envelope_data = await self._envelope_dao.get_by_id(
+                current_part_download.envelope_id
+            )
+        except ResourceNotFoundError as error:
+            raise ValueError("Envelope not found") from error
+
+        return envelope_data, current_part_download.file_id
+
     def _get_drs_uri(self, *, drs_id: str) -> str:
         """Construct DRS URI for the given DRS ID."""
 
@@ -238,3 +273,43 @@ class DataRepository(DataRepositoryPort):
         # publish message that the drs file has been registered
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
         await self._event_publisher.file_registered(drs_object=drs_object_with_uri)
+
+    async def serve_download(
+        self, *, download_id: str, signature: str, requested_range: str
+    ):
+        """
+        Check provided dowload information, adjust requested range and return requested
+        object part.
+
+        :returns: bytes, if envelope is part of the requested range, else a tuple containing
+            an S3 URL with adjusted range corresponding to envelope offset
+        """
+
+        # check download information and retreive envelope data
+        envelope_data, file_id = await self._get_envelope_data(
+            download_id=download_id, signature=signature
+        )
+
+        offset = envelope_data.offset
+        parsed_range = ranges.parse_ranges(range_header=requested_range, offset=offset)
+
+        download_url = await self._object_storage.get_object_download_url(
+            bucket_id=self._config.outbox_bucket, object_id=file_id
+        )
+
+        byte_range = f"bytes={parsed_range[0]}-{parsed_range[1]}"
+
+        if parsed_range[0] <= offset:
+            # requested part that needs to be prefixed by envelope
+            envelope_bytes = envelope_data.header
+            headers = {"Range": byte_range}
+            try:
+                response = requests.get(url=download_url, headers=headers, timeout=60)
+            except requests.ConnectionError as error:
+                raise ValueError("Connection Error") from error
+            part = response.content
+            return envelope_bytes + part
+
+        # redirect to S3 with adjusted ranges
+        redirect_range = f"Redirect-Range: {byte_range}"
+        return download_url, redirect_range

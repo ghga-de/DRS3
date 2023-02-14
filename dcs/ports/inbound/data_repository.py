@@ -30,6 +30,20 @@ class DataRepositoryPort(ABC):
             message = f"Failed to communicate with API at {api_url}"
             super().__init__(message)
 
+    class DonwloadLinkExpired(RuntimeError):
+        """Raised when the download attempt has expired"""
+
+        def __init__(self):
+            message = "Download link has expired"
+            super().__init__(message)
+
+    class DownloadNotFoundError(RuntimeError):
+        """Raised when either the download ID or signature do not match a valid download"""
+
+        def __init__(self):
+            message = "No valid download found for the requested URL"
+            super().__init__(message)
+
     class DrsObjectNotFoundError(RuntimeError):
         """Raised when no DRS object was found with the specified DRS ID."""
 
@@ -90,4 +104,17 @@ class DataRepositoryPort(ABC):
     @abstractmethod
     async def register_new_file(self, *, file: models.FileToRegister):
         """Register a file as a new DRS Object."""
+        ...
+
+    @abstractmethod
+    async def serve_download(
+        self, *, download_id: str, signature: str, requested_range: str
+    ):
+        """
+        Check provided dowload information, adjust requested range and return requested
+        object part.
+
+        :returns: bytes, if envelope is part of the requested range, else a tuple containing
+            an S3 URL with adjusted range corresponding to envelope offset
+        """
         ...

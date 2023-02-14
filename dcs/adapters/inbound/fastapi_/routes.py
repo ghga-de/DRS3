@@ -20,6 +20,7 @@ Module containing the main FastAPI router and all route functions.
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Header, status
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from dcs.adapters.inbound.fastapi_ import http_exceptions, http_responses
@@ -49,6 +50,20 @@ RESPONSES = {
             + "specified by Retry-After header."
         ),
         "model": DeliveryDelayedModel,
+    },
+    "noSuchDownload": {
+        "description": (
+            "Exceptions by ID:"
+            + "\n- noSuchDownload: The requested download was not found"
+        ),
+        "model": None,
+    },
+    "downloadExpired": {
+        "description": (
+            "Exceptions by ID:"
+            + "\n- downloadExpired: The provided download URL is no longer valid"
+        ),
+        "model": None,
     },
 }
 
@@ -118,3 +133,38 @@ async def get_drs_object(
         raise http_exceptions.HttpDBInteractionError(
             description=str(db_interaction_error)
         ) from db_interaction_error
+
+
+@router.get(
+    "downloads/{download_id}/?signature={signature}",
+    summary="",
+    operation_id="serveDownload",
+    tags=["DownloadControllerService"],
+    status_code=status.HTTP_206_PARTIAL_CONTENT,
+    response_model=None,
+    response_description="Succesfully retrieved .",
+    responses={},
+)
+@inject
+async def get_download(
+    download_id: str,
+    siganture: str,
+    range: str = Header(...),
+    data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
+):
+    """
+    Retrieve
+    """
+    try:
+        download_data = await data_repository.serve_download(
+            download_id=download_id, signature=siganture, requested_range=range
+        )
+    except:
+        ...
+    if isinstance(download_data, bytes):
+        ...
+    else:
+        download_url, redirect_range = download_data
+        return RedirectResponse(
+            url=download_url, status_code=301, headers=redirect_range
+        )
