@@ -30,6 +30,49 @@ class HttpDBInteractionError(HttpCustomExceptionBase):
         super().__init__(status_code=status_code, description=description, data={})
 
 
+class HttpDownloadLinkExpiredError(HttpCustomExceptionBase):
+    """Thrown when a download was requested after its expiration datetime has been reached"""
+
+    exception_id = "downloadLinkExpiredError"
+
+    def __init__(self, *, status_code: int = 410):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code, description="Download link has expired", data={}
+        )
+
+
+class HttpDownloadNotFoundError(HttpCustomExceptionBase):
+    """Thrown when the download_id or signature do not match an existing download entry"""
+
+    exception_id = "downloadNotFoundError"
+
+    def __init__(self, status_code: int = 404):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description="No valid download found for the given URL",
+            data={},
+        )
+
+
+class HttpEnvelopeNotFoundError(HttpCustomExceptionBase):
+    """
+    Thrown when envelope data unexpectedly is not found.
+    As this would only happen due to database inconsistencies, this is a server error
+    """
+
+    exception_id = "envelopeNotFoundError"
+
+    def __init__(self, status_code: int = 500):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description="No envelope data found for download",
+            data={},
+        )
+
+
 class HttpExternalAPIError(HttpCustomExceptionBase):
     """Thrown when communication with an external API produces an error"""
 

@@ -60,6 +60,13 @@ class DataRepositoryPort(ABC):
             )
             super().__init__(message)
 
+    class EnvelopeNotFoundError(RuntimeError):
+        """Raised when an envelope for a given download was not found, but should be present"""
+
+        def __init__(self, *, download_id: str):
+            message = f"Envelope not found for download {download_id}"
+            super().__init__(message)
+
     class RetryAccessLaterError(RuntimeError):
         """Raised when trying to access a DRS object that is not yet in the outbox.
         Instructs to retry later."""
@@ -107,14 +114,33 @@ class DataRepositoryPort(ABC):
         ...
 
     @abstractmethod
-    async def serve_download(
-        self, *, download_id: str, signature: str, requested_range: str
-    ):
+    async def validate_download_information(
+        self, *, download_id: str, signature: str
+    ) -> tuple[models.Envelope, str]:
         """
-        Check provided dowload information, adjust requested range and return requested
-        object part.
+        TODO
 
-        :returns: bytes, if envelope is part of the requested range, else a tuple containing
-            an S3 URL with adjusted range corresponding to envelope offset
+        :returns: envelope data and file_id for the requested download
+        """
+
+    @abstractmethod
+    async def serve_redirect(
+        self, *, object_id: str, parsed_range: tuple[int, int]
+    ) -> tuple[str, str]:
+        """
+        TODO
+
+        :returns: a tuple containing an S3 URL with adjusted range corresponding to envelope offset
+        """
+        ...
+
+    @abstractmethod
+    async def serve_envelope_part(
+        self, *, object_id: str, parsed_range: tuple[int, int], envelope_header: bytes
+    ) -> bytes:
+        """
+        TODO
+
+        :returns: bytes containing both the envelope and the first file part
         """
         ...

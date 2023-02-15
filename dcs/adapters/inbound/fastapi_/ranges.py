@@ -36,7 +36,7 @@ class UnsupportedUnitTypeError(RangeParsingError):
     ...
 
 
-def parse_ranges(range_header: str, offset: int) -> list[Tuple(int, int)]:
+def parse_header(range_header: str, offset: int) -> list[Tuple(int, int)]:
     """
     Range: <unit>=<range-start>-
     Range: <unit>=<range-start>-<range-end>
@@ -56,9 +56,9 @@ def parse_ranges(range_header: str, offset: int) -> list[Tuple(int, int)]:
             parsed_ranges.append(_parse_single_range(byte_range, offset))
         _validate_ranges(parsed_ranges)
         return parsed_ranges
-    else:
-        range_start, range_end = _parse_single_range(ranges, offset)
-        return [(range_start, range_end)]
+
+    range_start, range_end = _parse_single_range(ranges, offset)
+    return [(range_start, range_end)]
 
 
 def _parse_single_range(byte_range: str, offset: int):

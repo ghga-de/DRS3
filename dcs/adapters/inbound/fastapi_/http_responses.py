@@ -15,12 +15,24 @@
 
 """A collection of http responses."""
 
+from typing import Mapping
 
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
+
+
+class HttpDownloadRedirectResponse(RedirectResponse):
+    """Returns S3 download link with adjusted range in header"""
+
+    response_id = "downloadRedirected"
+
+    def __init__(self, url: str, redirect_range: str, status_code: int = 301):
+        """Construct message and init the response."""
+
+        headers = {"Redirect-Range": redirect_range}
+        super().__init__(url=url, status_code=status_code, headers=headers)
 
 
 class HttpObjectNotInOutboxResponse(JSONResponse):
-
     """
     Returned, when a file has not been staged to the outbox yet.
     """
@@ -33,8 +45,23 @@ class HttpObjectNotInOutboxResponse(JSONResponse):
         status_code: int = 202,
         retry_after: int = 300,
     ):
+        """Construct message and init the response."""
 
         headers = {"Retry-After": str(retry_after)}
-
-        """Construct message and init the response."""
         super().__init__(content=None, status_code=status_code, headers=headers)
+
+
+class HttpObjectPartWithEnvelopeResponse(Response):
+    """Returned when the requested range lies within the envelope"""
+
+    response_id = "objectPartWithEnvelope"
+
+    def __init__(
+        self,
+        content: bytes,
+        headers: Mapping[str, str],
+        status_code: int = 206,
+    ):
+        """Construct message and init the response."""
+        media_type = "multipart/byteranges"
+        super().__init__(content, status_code, headers, media_type)

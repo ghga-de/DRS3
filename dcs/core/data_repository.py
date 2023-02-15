@@ -25,7 +25,7 @@ from pydantic import BaseSettings, Field, validator
 
 from dcs.adapters.outbound.http import exceptions
 from dcs.adapters.outbound.http.api_calls import call_ekss_api
-from dcs.core import models, ranges
+from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import (
     DownloadDaoPort,
@@ -150,40 +150,6 @@ class DataRepository(DataRepositoryPort):
         host = self._config.drs_server_uri.replace("drs://", "http://")
         return f"{host}downloads/{download_id}/?signature={signature}"
 
-    async def _get_envelope_data(self, *, download_id: str, signature: str):
-        """
-        Checks if the request download exists and the link is not yet expired, then
-        retrieves envelope data.
-
-        :returns: IDs of the envelope and file_id corresponding to the requested download
-        """
-
-        try:
-            current_part_download = await self._download_dao.get_by_id(download_id)
-        except ResourceNotFoundError as error:
-            raise self.DownloadNotFoundError() from error
-
-        if not current_part_download.signature_hash == hashlib.sha256(signature):
-            raise self.DownloadNotFoundError()
-
-        expiration_datetime = datetime.fromisoformat(
-            current_part_download.expiration_datetime
-        )
-        now = datetime.utcnow()
-        duration = expiration_datetime - now
-
-        if duration.total_seconds <= 0:
-            raise self.DonwloadLinkExpired()
-
-        try:
-            envelope_data = await self._envelope_dao.get_by_id(
-                current_part_download.envelope_id
-            )
-        except ResourceNotFoundError as error:
-            raise ValueError("Envelope not found") from error
-
-        return envelope_data, current_part_download.file_id
-
     def _get_drs_uri(self, *, drs_id: str) -> str:
         """Construct DRS URI for the given DRS ID."""
 
@@ -274,42 +240,71 @@ class DataRepository(DataRepositoryPort):
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
         await self._event_publisher.file_registered(drs_object=drs_object_with_uri)
 
-    async def serve_download(
-        self, *, download_id: str, signature: str, requested_range: str
-    ):
+    async def valiadate_download_information(
+        self, *, download_id: str, signature: str
+    ) -> tuple[models.Envelope, str]:
         """
-        Check provided dowload information, adjust requested range and return requested
-        object part.
+        Checks if the request download exists and the link is not yet expired, then
+        retrieves envelope data.
 
-        :returns: bytes, if envelope is part of the requested range, else a tuple containing
-            an S3 URL with adjusted range corresponding to envelope offset
+        :returns: IDs of the envelope and file_id corresponding to the requested download
         """
 
-        # check download information and retreive envelope data
-        envelope_data, file_id = await self._get_envelope_data(
-            download_id=download_id, signature=signature
+        try:
+            current_part_download = await self._download_dao.get_by_id(download_id)
+        except ResourceNotFoundError as error:
+            raise self.DownloadNotFoundError() from error
+
+        if not current_part_download.signature_hash == hashlib.sha256(signature):  # type: ignore[arg-type]
+            raise self.DownloadNotFoundError()
+
+        expiration_datetime = datetime.fromisoformat(
+            current_part_download.expiration_datetime
+        )
+        now = datetime.utcnow()
+        duration = expiration_datetime - now
+
+        if duration.total_seconds() <= 0:
+            raise self.DonwloadLinkExpired()
+
+        try:
+            envelope_data = await self._envelope_dao.get_by_id(
+                current_part_download.envelope_id
+            )
+        except ResourceNotFoundError as error:
+            raise self.EnvelopeNotFoundError(download_id=download_id) from error
+
+        return envelope_data, current_part_download.file_id
+
+    async def serve_redirect(
+        self, *, object_id: str, parsed_range: tuple[int, int]
+    ) -> tuple[str, str]:
+        """
+        TODO
+
+        :returns: a tuple containing an S3 URL with adjusted range corresponding to envelope offset
+        """
+
+        redirect_url = await self._object_storage.get_object_download_url(
+            bucket_id=self._config.outbox_bucket, object_id=object_id
         )
 
-        offset = envelope_data.offset
-        parsed_range = ranges.parse_ranges(range_header=requested_range, offset=offset)
+        return redirect_url, f"bytes={parsed_range[0]-parsed_range[1]}"
 
-        download_url = await self._object_storage.get_object_download_url(
-            bucket_id=self._config.outbox_bucket, object_id=file_id
+    async def serve_envelope_part(
+        self, *, object_id: str, parsed_range: tuple[int, int], envelope_header: bytes
+    ) -> bytes:
+        """
+        TODO
+
+        :returns: bytes containing both the envelope and the first file part
+        """
+        range_header = {"Range": f"bytes={parsed_range[0]-parsed_range[1]}"}
+        redirect_url = await self._object_storage.get_object_download_url(
+            bucket_id=self._config.outbox_bucket, object_id=object_id
         )
-
-        byte_range = f"bytes={parsed_range[0]}-{parsed_range[1]}"
-
-        if parsed_range[0] <= offset:
-            # requested part that needs to be prefixed by envelope
-            envelope_bytes = envelope_data.header
-            headers = {"Range": byte_range}
-            try:
-                response = requests.get(url=download_url, headers=headers, timeout=60)
-            except requests.ConnectionError as error:
-                raise ValueError("Connection Error") from error
-            part = response.content
-            return envelope_bytes + part
-
-        # redirect to S3 with adjusted ranges
-        redirect_range = f"Redirect-Range: {byte_range}"
-        return download_url, redirect_range
+        try:
+            response = requests.get(url=redirect_url, headers=range_header, timeout=60)
+        except requests.ConnectionError as error:
+            raise self.APICommunicationError(api_url=redirect_url) from error
+        return envelope_header + response.content

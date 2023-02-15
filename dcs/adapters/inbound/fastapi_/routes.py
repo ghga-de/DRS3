@@ -20,10 +20,9 @@ Module containing the main FastAPI router and all route functions.
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Header, status
-from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
-from dcs.adapters.inbound.fastapi_ import http_exceptions, http_responses
+from dcs.adapters.inbound.fastapi_ import http_exceptions, http_responses, ranges
 from dcs.container import Container
 from dcs.core.models import DrsObjectWithAccess
 from dcs.ports.inbound.data_repository import DataRepositoryPort
@@ -148,23 +147,49 @@ async def get_drs_object(
 @inject
 async def get_download(
     download_id: str,
-    siganture: str,
+    signature: str,
     range: str = Header(...),
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
     Retrieve
     """
+
+    # check download information and retreive envelope data
     try:
-        download_data = await data_repository.serve_download(
-            download_id=download_id, signature=siganture, requested_range=range
+        envelope_data, file_id = await data_repository.validate_download_information(
+            download_id=download_id, signature=signature
         )
-    except:
-        ...
-    if isinstance(download_data, bytes):
-        ...
-    else:
-        download_url, redirect_range = download_data
-        return RedirectResponse(
-            url=download_url, status_code=301, headers=redirect_range
+    except data_repository.DownloadNotFoundError as error:
+        raise http_exceptions.HttpDownloadNotFoundError() from error
+    except data_repository.DonwloadLinkExpired as error:
+        raise http_exceptions.HttpDownloadLinkExpiredError() from error
+    except data_repository.EnvelopeNotFoundError as error:
+        raise http_exceptions.HttpEnvelopeNotFoundError() from error
+
+    offset = envelope_data.offset
+    parsed_range = ranges.parse_header(range_header=range, offset=offset)
+
+    if parsed_range[0] <= offset:
+        # envelope in range
+        try:
+            object_part = await data_repository.serve_envelope_part(
+                object_id=file_id,
+                parsed_range=parsed_range,
+                envelope_header=envelope_data.header,
+            )
+        except data_repository.APICommunicationError as error:
+            raise http_exceptions.HttpExternalAPIError(description=str(error))
+
+        # TODO: headers for 206 response
+        return http_responses.HttpObjectPartWithEnvelopeResponse(
+            content=object_part, headers={}
         )
+
+    # envelope not in range
+    redirect_url, redirect_range = await data_repository.serve_redirect(
+        object_id=file_id, parsed_range=parsed_range
+    )
+    return http_responses.HttpDownloadRedirectResponse(
+        url=redirect_url, redirect_range=redirect_range
+    )
