@@ -126,7 +126,7 @@ class DataRepositoryPort(ABC):
     @abstractmethod
     async def serve_redirect(
         self, *, object_id: str, parsed_range: tuple[int, int]
-    ) -> tuple[str, str]:
+    ) -> tuple[str, dict[str, str]]:
         """
         TODO
 

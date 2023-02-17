@@ -278,7 +278,7 @@ class DataRepository(DataRepositoryPort):
 
     async def serve_redirect(
         self, *, object_id: str, parsed_range: tuple[int, int]
-    ) -> tuple[str, str]:
+    ) -> tuple[str, dict[str, str]]:
         """
         TODO
 
@@ -289,7 +289,9 @@ class DataRepository(DataRepositoryPort):
             bucket_id=self._config.outbox_bucket, object_id=object_id
         )
 
-        return redirect_url, f"bytes={parsed_range[0]-parsed_range[1]}"
+        return redirect_url, {
+            "Redirect-Range": f"bytes={parsed_range[0]-parsed_range[1]}"
+        }
 
     async def serve_envelope_part(
         self, *, object_id: str, parsed_range: tuple[int, int], envelope_header: bytes

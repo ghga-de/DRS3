@@ -187,9 +187,9 @@ async def get_download(
         )
 
     # envelope not in range
-    redirect_url, redirect_range = await data_repository.serve_redirect(
+    redirect_url, redirect_header = await data_repository.serve_redirect(
         object_id=file_id, parsed_range=parsed_range
     )
     return http_responses.HttpDownloadRedirectResponse(
-        url=redirect_url, redirect_range=redirect_range
+        url=redirect_url, redirect_header=redirect_header
     )

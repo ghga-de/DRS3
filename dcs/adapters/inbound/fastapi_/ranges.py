@@ -12,31 +12,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Basic range parsing, adding envelope offset"""
+
 
 from typing import Tuple
 
 
 class RangeParsingError(RuntimeError):
-    ...
+    """TODO"""
+
+
+class EmptyRangeError(RangeParsingError):
+    """TODO"""
 
 
 class InvalidFormatError(RangeParsingError):
-    ...
+    """TODO"""
 
 
-class EmptyOrNegativeRangeError(RangeParsingError):
-    ...
-
-
-class OverlappingRangesError(RangeParsingError):
-    ...
+class NegativeRangeError(RangeParsingError):
+    """TODO"""
 
 
 class UnsupportedUnitTypeError(RangeParsingError):
-    ...
+    """TODO"""
 
 
-def parse_header(range_header: str, offset: int) -> list[Tuple(int, int)]:
+def parse_header(range_header: str, offset: int) -> Tuple[int, int]:
     """
     Range: <unit>=<range-start>-
     Range: <unit>=<range-start>-<range-end>
@@ -51,45 +53,28 @@ def parse_header(range_header: str, offset: int) -> list[Tuple(int, int)]:
         raise UnsupportedUnitTypeError(unit)
 
     if "," in ranges:
-        parsed_ranges = []
-        for byte_range in ranges.split(","):
-            parsed_ranges.append(_parse_single_range(byte_range, offset))
-        _validate_ranges(parsed_ranges)
-        return parsed_ranges
+        # we only support returning the first range
+        source_ranges = ranges.split(",")
+        return _parse_single_range(source_ranges[0], offset)
 
-    range_start, range_end = _parse_single_range(ranges, offset)
-    return [(range_start, range_end)]
+    return _parse_single_range(ranges, offset)
 
 
 def _parse_single_range(byte_range: str, offset: int):
     """TODO"""
     start, _, end = byte_range.strip().partition("-")
 
-    start, end = start.strip(), end.strip()
+    range_start, range_end = None, None
 
-    if start:
-        start = int(start) + offset
-    if end:
-        end = int(end) + offset
+    if start.isnumeric():
+        range_start = int(start) + offset
+    if end.isnumeric():
+        range_end = int(end) + offset
 
-    if not any(start, end):
-        raise RangeParsingError()
+    if not any([range_start, range_end]):
+        raise EmptyRangeError()
 
-    if end - start <= 0:
-        raise EmptyOrNegativeRangeError()
+    if all([range_start, range_end]) and range_end - range_start < 0:
+        raise NegativeRangeError()
 
-    return start, end
-
-
-def _validate_ranges(parsed_ranges: list[Tuple[int, int]]):
-    """TODO"""
-    seen_ends = []
-    processed_ranges = []
-    for start, end in parsed_ranges:
-        if isinstance(start, str) or isinstance(end, str):
-            raise RangeParsingError()
-        if seen_ends:
-            for seen_end in seen_ends:
-                if start <= seen_end:
-                    raise OverlappingRangesError()
-        processed_ranges.append(f"{start}-{end}")
+    return range_start, range_end

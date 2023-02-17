@@ -25,11 +25,12 @@ class HttpDownloadRedirectResponse(RedirectResponse):
 
     response_id = "downloadRedirected"
 
-    def __init__(self, url: str, redirect_range: str, status_code: int = 301):
+    def __init__(
+        self, url: str, redirect_header: dict[str, str], status_code: int = 301
+    ):
         """Construct message and init the response."""
 
-        headers = {"Redirect-Range": redirect_range}
-        super().__init__(url=url, status_code=status_code, headers=headers)
+        super().__init__(url=url, status_code=status_code, headers=redirect_header)
 
 
 class HttpObjectNotInOutboxResponse(JSONResponse):
@@ -63,5 +64,5 @@ class HttpObjectPartWithEnvelopeResponse(Response):
         status_code: int = 206,
     ):
         """Construct message and init the response."""
-        media_type = "multipart/byteranges"
+        media_type = "application/octet-stream"
         super().__init__(content, status_code, headers, media_type)
