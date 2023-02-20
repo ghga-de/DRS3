@@ -64,8 +64,6 @@ def _parse_single_range(byte_range: str, offset: int):
     """TODO"""
     start, _, end = byte_range.strip().partition("-")
 
-    range_start, range_end = None, None
-
     if start.isnumeric():
         range_start = int(start) + offset
     if end.isnumeric():

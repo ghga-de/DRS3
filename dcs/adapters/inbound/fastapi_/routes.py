@@ -148,7 +148,7 @@ async def get_drs_object(
 async def get_download(
     download_id: str,
     signature: str,
-    range: str = Header(...),
+    range: str = Header(...),  # pylint: disable=redefined-builtin
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
@@ -181,7 +181,8 @@ async def get_download(
         except data_repository.APICommunicationError as error:
             raise http_exceptions.HttpExternalAPIError(description=str(error))
 
-        # TODO: headers for 206 response
+        # headers for 206 response
+        # headers = {"Content-Range": f"bytes {parsed_range[0]}-{parsed_range[1]}/total_size"}
         return http_responses.HttpObjectPartWithEnvelopeResponse(
             content=object_part, headers={}
         )

@@ -255,7 +255,8 @@ class DataRepository(DataRepositoryPort):
         except ResourceNotFoundError as error:
             raise self.DownloadNotFoundError() from error
 
-        if not current_part_download.signature_hash == hashlib.sha256(signature):  # type: ignore[arg-type]
+        signature_hash = hashlib.sha256(signature)  # type: ignore[arg-type]
+        if not current_part_download.signature_hash == signature_hash:
             raise self.DownloadNotFoundError()
 
         expiration_datetime = datetime.fromisoformat(
