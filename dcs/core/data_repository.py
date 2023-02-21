@@ -240,7 +240,7 @@ class DataRepository(DataRepositoryPort):
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
         await self._event_publisher.file_registered(drs_object=drs_object_with_uri)
 
-    async def valiadate_download_information(
+    async def validate_download_information(
         self, *, download_id: str, signature: str
     ) -> tuple[models.Envelope, str]:
         """
