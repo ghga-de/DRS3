@@ -55,6 +55,163 @@ components:
           type: array
       title: HTTPValidationError
       type: object
+    HttpDBInteractionError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpDBInteractionErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - dbInteractionError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpDBInteractionError
+      type: object
+    HttpDBInteractionErrorData:
+      description: 'An empty model used as default for describing exception data.
+
+        Please overwrite this to define your own data model.'
+      properties: {}
+      title: HttpDBInteractionErrorData
+      type: object
+    HttpDownloadEndpointErrorModel:
+      anyOf:
+      - $ref: '#/components/schemas/HttpEnvelopeNotFoundError'
+      - $ref: '#/components/schemas/HttpExternalAPIError'
+      description: TODO
+      title: HttpDownloadEndpointErrorModel
+    HttpDownloadLinkExpiredError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpDownloadLinkExpiredErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - downloadLinkExpiredError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpDownloadLinkExpiredError
+      type: object
+    HttpDownloadLinkExpiredErrorData:
+      description: 'An empty model used as default for describing exception data.
+
+        Please overwrite this to define your own data model.'
+      properties: {}
+      title: HttpDownloadLinkExpiredErrorData
+      type: object
+    HttpDownloadNotFoundError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpDownloadNotFoundErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - downloadNotFoundError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpDownloadNotFoundError
+      type: object
+    HttpDownloadNotFoundErrorData:
+      description: 'An empty model used as default for describing exception data.
+
+        Please overwrite this to define your own data model.'
+      properties: {}
+      title: HttpDownloadNotFoundErrorData
+      type: object
+    HttpEnvelopeNotFoundError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpEnvelopeNotFoundErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - envelopeNotFoundError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpEnvelopeNotFoundError
+      type: object
+    HttpEnvelopeNotFoundErrorData:
+      description: 'An empty model used as default for describing exception data.
+
+        Please overwrite this to define your own data model.'
+      properties: {}
+      title: HttpEnvelopeNotFoundErrorData
+      type: object
+    HttpExternalAPIError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpExternalAPIErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - externalAPIError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpExternalAPIError
+      type: object
+    HttpExternalAPIErrorData:
+      description: 'An empty model used as default for describing exception data.
+
+        Please overwrite this to define your own data model.'
+      properties: {}
+      title: HttpExternalAPIErrorData
+      type: object
+    HttpObjectEndpointErrorModel:
+      anyOf:
+      - $ref: '#/components/schemas/HttpDBInteractionError'
+      - $ref: '#/components/schemas/HttpExternalAPIError'
+      description: TODO
+      title: HttpObjectEndpointErrorModel
     HttpObjectNotFoundError:
       additionalProperties: false
       description: A custom exception body model.
@@ -87,6 +244,35 @@ components:
       - object_id
       title: HttpObjectNotFoundErrorData
       type: object
+    HttpRangeParsingError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpRangeParsingErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - rangeParsingError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpRangeParsingError
+      type: object
+    HttpRangeParsingErrorData:
+      description: 'An empty model used as default for describing exception data.
+
+        Please overwrite this to define your own data model.'
+      properties: {}
+      title: HttpRangeParsingErrorData
+      type: object
     ValidationError:
       properties:
         loc:
@@ -116,6 +302,87 @@ info:
   version: 0.5.5
 openapi: 3.0.2
 paths:
+  /downloads/{download_id}:
+    get:
+      description: 'Retrieve either a bytestream of the first file part + envelope
+        or a redirect with a
+
+        presigned URL to the S3 object'
+      operationId: serveDownload
+      parameters:
+      - in: path
+        name: download_id
+        required: true
+        schema:
+          title: Download Id
+          type: string
+      - in: query
+        name: signature
+        required: true
+        schema:
+          title: Signature
+          type: string
+      - in: header
+        name: range
+        required: true
+        schema:
+          title: Range
+          type: string
+      responses:
+        '206':
+          content:
+            application/json:
+              schema: {}
+          description: Successfully delivered first file part.
+        '301':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryDelayedModel'
+          description: The operation is delayed and will continue asynchronously.
+            The client should retry this same request after the delay specified by
+            Retry-After header.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpRangeParsingError'
+          description: Bad Request
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpDownloadNotFoundError'
+          description: 'Exceptions by ID:
+
+            - noSuchDownload: The requested download was not found'
+        '410':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpDownloadLinkExpiredError'
+          description: 'Exceptions by ID:
+
+            - downloadExpired: The provided download URL is no longer valid'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpDownloadEndpointErrorModel'
+          description: 'Exceptions by ID:
+
+            - envelopeNotFoundError: Communication with service external APIs failed
+
+            - externalAPIError: Communication with service external APIs failed'
+      summary: Get Download
+      tags:
+      - DownloadControllerService
   /health:
     get:
       description: Used to test if this service is alive
@@ -175,46 +442,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-      summary: Returns object metadata, and a list of access methods that can be used
-        to fetch object bytes.
-      tags:
-      - DownloadControllerService
-  downloads/{download_id}/?signature={signature}:
-    get:
-      description: Retrieve
-      operationId: serveDownload
-      parameters:
-      - in: path
-        name: download_id
-        required: true
-        schema:
-          title: Download Id
-          type: string
-      - in: path
-        name: signature
-        required: true
-        schema:
-          title: Signature
-          type: string
-      - in: header
-        name: range
-        required: true
-        schema:
-          title: Range
-          type: string
-      responses:
-        '206':
-          content:
-            application/json:
-              schema: {}
-          description: Succesfully retrieved .
-        '422':
+        '500':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-      summary: Get Download
+                $ref: '#/components/schemas/HttpObjectEndpointErrorModel'
+          description: 'Exceptions by ID:
+
+            - dbInteractionError: Database communication failed
+
+            - externalAPIError: Communication with service external APIs failed'
+      summary: Returns object metadata, and a list of access methods that can be used
+        to fetch object bytes.
       tags:
       - DownloadControllerService
 servers:

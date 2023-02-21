@@ -12,17 +12,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
 """
 Module containing the main FastAPI router and all route functions.
 """
 
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Header, status
+from fastapi import APIRouter, Depends, Header, Query, status
 from pydantic import BaseModel
 
-from dcs.adapters.inbound.fastapi_ import http_exceptions, http_responses, ranges
+from dcs.adapters.inbound.fastapi_ import (
+    http_exceptions,
+    http_response_models,
+    http_responses,
+    ranges,
+)
 from dcs.container import Container
 from dcs.core.models import DrsObjectWithAccess
 from dcs.ports.inbound.data_repository import DataRepositoryPort
@@ -35,12 +38,41 @@ class DeliveryDelayedModel(BaseModel):
 
 
 RESPONSES = {
-    "noSuchObject": {
+    "downloadEndpointError": {
         "description": (
             "Exceptions by ID:"
-            + "\n- noSuchUpload: The requested DrsObject wasn't found"
+            + "\n- envelopeNotFoundError: Communication with service external APIs failed"
+            + "\n- externalAPIError: Communication with service external APIs failed"
+        ),
+        "model": http_response_models.HttpDownloadEndpointErrorModel,
+    },
+    "downloadExpiredError": {
+        "description": (
+            "Exceptions by ID:"
+            + "\n- downloadExpired: The provided download URL is no longer valid"
+        ),
+        "model": http_exceptions.HttpDownloadLinkExpiredError.get_body_model(),
+    },
+    "noSuchDownload": {
+        "description": (
+            "Exceptions by ID:"
+            + "\n- noSuchDownload: The requested download was not found"
+        ),
+        "model": http_exceptions.HttpDownloadNotFoundError.get_body_model(),
+    },
+    "noSuchObject": {
+        "description": (
+            "Exceptions by ID:\n- noSuchUpload: The requested DrsObject wasn't found"
         ),
         "model": http_exceptions.HttpObjectNotFoundError.get_body_model(),
+    },
+    "objectEndpointError": {
+        "description": (
+            "Exceptions by ID:"
+            + "\n- dbInteractionError: Database communication failed"
+            + "\n- externalAPIError: Communication with service external APIs failed"
+        ),
+        "model": http_response_models.HttpObjectEndpointErrorModel,
     },
     "objectNotInOutbox": {
         "description": (
@@ -50,19 +82,9 @@ RESPONSES = {
         ),
         "model": DeliveryDelayedModel,
     },
-    "noSuchDownload": {
-        "description": (
-            "Exceptions by ID:"
-            + "\n- noSuchDownload: The requested download was not found"
-        ),
-        "model": None,
-    },
-    "downloadExpired": {
-        "description": (
-            "Exceptions by ID:"
-            + "\n- downloadExpired: The provided download URL is no longer valid"
-        ),
-        "model": None,
+    "rangeParsingError": {
+        "description": (),
+        "model": http_exceptions.HttpRangeParsingError.get_body_model(),
     },
 }
 
@@ -91,6 +113,7 @@ async def health():
     responses={
         status.HTTP_202_ACCEPTED: RESPONSES["objectNotInOutbox"],
         status.HTTP_404_NOT_FOUND: RESPONSES["noSuchObject"],
+        status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["objectEndpointError"],
     },
 )
 @inject
@@ -135,24 +158,31 @@ async def get_drs_object(
 
 
 @router.get(
-    "downloads/{download_id}/?signature={signature}",
+    "/downloads/{download_id}",
     summary="",
     operation_id="serveDownload",
     tags=["DownloadControllerService"],
     status_code=status.HTTP_206_PARTIAL_CONTENT,
     response_model=None,
-    response_description="Succesfully retrieved .",
-    responses={},
+    response_description="Successfully delivered first file part.",
+    responses={
+        status.HTTP_301_MOVED_PERMANENTLY: RESPONSES["objectNotInOutbox"],
+        status.HTTP_400_BAD_REQUEST: RESPONSES["rangeParsingError"],
+        status.HTTP_404_NOT_FOUND: RESPONSES["noSuchDownload"],
+        status.HTTP_410_GONE: RESPONSES["downloadExpiredError"],
+        status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["downloadEndpointError"],
+    },
 )
 @inject
 async def get_download(
     download_id: str,
-    signature: str,
+    signature: str = Query(...),
     range: str = Header(...),  # pylint: disable=redefined-builtin
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
-    Retrieve
+    Retrieve either a bytestream of the first file part + envelope or a redirect with a
+    presigned URL to the S3 object
     """
 
     # check download information and retreive envelope data
@@ -168,7 +198,10 @@ async def get_download(
         raise http_exceptions.HttpEnvelopeNotFoundError() from error
 
     offset = envelope_data.offset
-    parsed_range = ranges.parse_header(range_header=range, offset=offset)
+    try:
+        parsed_range = ranges.parse_header(range_header=range, offset=offset)
+    except ranges.RangeParsingError as error:
+        raise http_exceptions.HttpRangeParsingError(message=str(error)) from error
 
     if parsed_range[0] <= offset:
         # envelope in range
@@ -182,9 +215,9 @@ async def get_download(
             raise http_exceptions.HttpExternalAPIError(description=str(error))
 
         # headers for 206 response
-        # headers = {"Content-Range": f"bytes {parsed_range[0]}-{parsed_range[1]}/total_size"}
+        headers = {"Content-Range": f"bytes {parsed_range[0]}-{parsed_range[1]}/*"}
         return http_responses.HttpObjectPartWithEnvelopeResponse(
-            content=object_part, headers={}
+            content=object_part, headers=headers
         )
 
     # envelope not in range

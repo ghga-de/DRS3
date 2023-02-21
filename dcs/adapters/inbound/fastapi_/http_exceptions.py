@@ -64,11 +64,11 @@ class HttpEnvelopeNotFoundError(HttpCustomExceptionBase):
 
     exception_id = "envelopeNotFoundError"
 
-    def __init__(self, status_code: int = 500):
+    def __init__(self, *, status_code: int = 500):
         """Construct message and init the exception."""
         super().__init__(
             status_code=status_code,
-            description="No envelope data found for download",
+            description="Envelope for the given download could not be found",
             data={},
         )
 
@@ -100,3 +100,13 @@ class HttpObjectNotFoundError(HttpCustomExceptionBase):
             description="The requested DrsObject wasn't found",
             data={"object_id": object_id},
         )
+
+
+class HttpRangeParsingError(HttpCustomExceptionBase):
+    """Thrown when parsing a download request range header fails"""
+
+    exception_id = "rangeParsingError"
+
+    def __init__(self, *, message: str, status_code: int = 400):
+        """Construct message and init the exception."""
+        super().__init__(status_code=status_code, description=message, data={})

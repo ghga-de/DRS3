@@ -64,5 +64,5 @@ class HttpObjectPartWithEnvelopeResponse(Response):
         status_code: int = 206,
     ):
         """Construct message and init the response."""
-        media_type = "application/octet-stream"
+        media_type = "binary/octet-stream"
         super().__init__(content, status_code, headers, media_type)

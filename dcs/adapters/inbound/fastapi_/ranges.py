@@ -1,4 +1,4 @@
-# Copyright 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,19 +19,24 @@ from typing import Tuple
 
 
 class RangeParsingError(RuntimeError):
-    """TODO"""
+    """Superclass for all range parsing related errors"""
 
 
 class EmptyRangeError(RangeParsingError):
-    """TODO"""
+    """Thrown when neither the range start nor end are valid integers"""
+
+    def __init__(self):
+        """Construct message and init the exception."""
+        message = "No valid integer specified in range"
+        super().__init__(message)
 
 
 class InvalidFormatError(RangeParsingError):
-    """TODO"""
+    """Thrown when = is missing in the header value"""
 
 
 class NegativeRangeError(RangeParsingError):
-    """TODO"""
+    """Thrown when the parsed range"""
 
 
 class UnsupportedUnitTypeError(RangeParsingError):
@@ -64,9 +69,9 @@ def _parse_single_range(byte_range: str, offset: int):
     """TODO"""
     start, _, end = byte_range.strip().partition("-")
 
-    if start.isnumeric():
+    if start.isdigit():
         range_start = int(start) + offset
-    if end.isnumeric():
+    if end.isdigit():
         range_end = int(end) + offset
 
     if not any([range_start, range_end]):
