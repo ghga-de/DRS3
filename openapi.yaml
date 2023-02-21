@@ -88,7 +88,7 @@ components:
       anyOf:
       - $ref: '#/components/schemas/HttpEnvelopeNotFoundError'
       - $ref: '#/components/schemas/HttpExternalAPIError'
-      description: TODO
+      description: Pydantic model for possible 500 responses for the download endpoint
       title: HttpDownloadEndpointErrorModel
     HttpDownloadLinkExpiredError:
       additionalProperties: false
@@ -210,7 +210,7 @@ components:
       anyOf:
       - $ref: '#/components/schemas/HttpDBInteractionError'
       - $ref: '#/components/schemas/HttpExternalAPIError'
-      description: TODO
+      description: Pydantic model for possible 500 responses for the download endpoint
       title: HttpObjectEndpointErrorModel
     HttpObjectNotFoundError:
       additionalProperties: false
@@ -273,6 +273,31 @@ components:
       properties: {}
       title: HttpRangeParsingErrorData
       type: object
+    ObjectPartWithEnvelopeModel:
+      description: Response model for first object part with envelope
+      properties:
+        content:
+          format: binary
+          title: Content
+          type: string
+        media_type:
+          title: Media Type
+          type: string
+      required:
+      - media_type
+      - content
+      title: ObjectPartWithEnvelopeModel
+      type: object
+    RedirectResponseModel:
+      description: Response model for the objectstorage redirect
+      properties:
+        url:
+          title: Url
+          type: string
+      required:
+      - url
+      title: RedirectResponseModel
+      type: object
     ValidationError:
       properties:
         loc:
@@ -332,22 +357,23 @@ paths:
         '206':
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/ObjectPartWithEnvelopeModel'
           description: Successfully delivered first file part.
         '301':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DeliveryDelayedModel'
-          description: The operation is delayed and will continue asynchronously.
-            The client should retry this same request after the delay specified by
-            Retry-After header.
+                $ref: '#/components/schemas/RedirectResponseModel'
+          description: Moved Permanently
         '400':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HttpRangeParsingError'
-          description: Bad Request
+          description: 'Exceptions by ID:
+
+            - rangeParsingError: Provided range header is invalid'
         '404':
           content:
             application/json:

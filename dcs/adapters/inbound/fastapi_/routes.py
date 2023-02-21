@@ -18,7 +18,6 @@ Module containing the main FastAPI router and all route functions.
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Header, Query, status
-from pydantic import BaseModel
 
 from dcs.adapters.inbound.fastapi_ import (
     http_exceptions,
@@ -31,10 +30,6 @@ from dcs.core.models import DrsObjectWithAccess
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 
 router = APIRouter()
-
-
-class DeliveryDelayedModel(BaseModel):
-    """Pydantic model for 202 Response. Empty, since 202 has no body."""
 
 
 RESPONSES = {
@@ -80,11 +75,18 @@ RESPONSES = {
             + "The client should retry this same request after the delay "
             + "specified by Retry-After header."
         ),
-        "model": DeliveryDelayedModel,
+        "model": http_response_models.DeliveryDelayedModel,
     },
     "rangeParsingError": {
-        "description": (),
+        "description": (
+            "Exceptions by ID:"
+            + "\n- rangeParsingError: Provided range header is invalid"
+        ),
         "model": http_exceptions.HttpRangeParsingError.get_body_model(),
+    },
+    "redirectResponse": {
+        "description": (),
+        "model": http_response_models.RedirectResponseModel,
     },
 }
 
@@ -163,10 +165,10 @@ async def get_drs_object(
     operation_id="serveDownload",
     tags=["DownloadControllerService"],
     status_code=status.HTTP_206_PARTIAL_CONTENT,
-    response_model=None,
+    response_model=http_response_models.ObjectPartWithEnvelopeModel,
     response_description="Successfully delivered first file part.",
     responses={
-        status.HTTP_301_MOVED_PERMANENTLY: RESPONSES["objectNotInOutbox"],
+        status.HTTP_301_MOVED_PERMANENTLY: RESPONSES["redirectResponse"],
         status.HTTP_400_BAD_REQUEST: RESPONSES["rangeParsingError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["noSuchDownload"],
         status.HTTP_410_GONE: RESPONSES["downloadExpiredError"],

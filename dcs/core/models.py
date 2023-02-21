@@ -87,7 +87,7 @@ class DrsObjectWithUri(DrsObject):
         """Checks if the self_uri is a valid DRS URI."""
 
         if not re.match(r"^drs://.+/.+", value):
-            ValueError(f"The self_uri '{value}' is no valid DRS URI.")
+            raise ValueError(f"The self_uri '{value}' is no valid DRS URI.")
 
         return value
 

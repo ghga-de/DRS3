@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""TODO"""
+"""Custom composite response models"""
 
 from typing import Union
 
@@ -29,8 +29,18 @@ HttpEnvelopeNotFoundErrorModel = HttpEnvelopeNotFoundError.get_body_model()
 HttpDBInteractionErrorModel = HttpDBInteractionError.get_body_model()
 
 
+class DeliveryDelayedModel(BaseModel):
+    """Pydantic model for 202 Response. Empty, since 202 has no body."""
+
+
+class RedirectResponseModel(BaseModel):
+    """Response model for the objectstorage redirect"""
+
+    url: str
+
+
 class HttpDownloadEndpointErrorModel(BaseModel):
-    """TODO"""
+    """Pydantic model for possible 500 responses for the download endpoint"""
 
     __root__: Union[  # type: ignore
         HttpEnvelopeNotFoundErrorModel, HttpExternalApiErrorModel
@@ -38,8 +48,15 @@ class HttpDownloadEndpointErrorModel(BaseModel):
 
 
 class HttpObjectEndpointErrorModel(BaseModel):
-    """TODO"""
+    """Pydantic model for possible 500 responses for the download endpoint"""
 
     __root__: Union[  # type: ignore
         HttpDBInteractionErrorModel, HttpExternalApiErrorModel
     ] = Field(...)
+
+
+class ObjectPartWithEnvelopeModel(BaseModel):
+    """Response model for first object part with envelope"""
+
+    media_type: str
+    content: bytes
