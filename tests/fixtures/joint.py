@@ -71,24 +71,24 @@ async def joint_fixture(
     )
 
     # create a DI container instance:translators
-    async with get_configured_container(config=config) as container:
-        container.wire(modules=["dcs.adapters.inbound.fastapi_.routes"])
+    container = get_configured_container(config=config)
 
-        # create storage entities:
-        await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
+    container.wire(modules=["dcs.adapters.inbound.fastapi_.routes"])
 
-        # setup an API test client:
-        api = get_rest_api(config=config)
-        port = get_free_port()
-        async with httpx.AsyncClient(
-            app=api, base_url=f"http://localhost:{port}"
-        ) as rest_client:
+    # create storage entities:
+    await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
 
-            yield JointFixture(
-                config=config,
-                container=container,
-                mongodb=mongodb_fixture,
-                rest_client=rest_client,
-                s3=s3_fixture,
-                kafka=kafka_fixture,
-            )
+    # setup an API test client:
+    api = get_rest_api(config=config)
+    port = get_free_port()
+    async with httpx.AsyncClient(
+        app=api, base_url=f"http://localhost:{port}"
+    ) as rest_client:
+        yield JointFixture(
+            config=config,
+            container=container,
+            mongodb=mongodb_fixture,
+            rest_client=rest_client,
+            s3=s3_fixture,
+            kafka=kafka_fixture,
+        )
