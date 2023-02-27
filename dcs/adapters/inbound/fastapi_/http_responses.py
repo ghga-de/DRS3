@@ -15,9 +15,7 @@
 
 """A collection of http responses."""
 
-from typing import Mapping
-
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import JSONResponse, RedirectResponse
 
 
 class HttpDownloadRedirectResponse(RedirectResponse):
@@ -26,11 +24,22 @@ class HttpDownloadRedirectResponse(RedirectResponse):
     response_id = "downloadRedirected"
 
     def __init__(
-        self, url: str, redirect_header: dict[str, str], status_code: int = 301
+        self, *, url: str, redirect_header: dict[str, str], status_code: int = 301
     ):
         """Construct message and init the response."""
 
         super().__init__(url=url, status_code=status_code, headers=redirect_header)
+
+
+class HttEnvelopeResponse(JSONResponse):
+    """Return base64 encoded envelope bytes"""
+
+    response_id = "envelope"
+
+    def __init__(self, *, envelope: str, status_code: int = 200):
+        """Construct message and init the response."""
+
+        super().__init__(content=envelope, status_code=status_code)
 
 
 class HttpObjectNotInOutboxResponse(JSONResponse):
@@ -50,19 +59,3 @@ class HttpObjectNotInOutboxResponse(JSONResponse):
 
         headers = {"Retry-After": str(retry_after)}
         super().__init__(content=None, status_code=status_code, headers=headers)
-
-
-class HttpObjectPartWithEnvelopeResponse(Response):
-    """Returned when the requested range lies within the envelope"""
-
-    response_id = "objectPartWithEnvelope"
-
-    def __init__(
-        self,
-        content: bytes,
-        headers: Mapping[str, str],
-        status_code: int = 206,
-    ):
-        """Construct message and init the response."""
-        media_type = "binary/octet-stream"
-        super().__init__(content, status_code, headers, media_type)

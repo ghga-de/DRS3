@@ -17,57 +17,36 @@ Module containing the main FastAPI router and all route functions.
 """
 
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Header, Query, status
+from fastapi import APIRouter, Depends, status
 
 from dcs.adapters.inbound.fastapi_ import (
     http_exceptions,
     http_response_models,
     http_responses,
-    ranges,
 )
 from dcs.container import Container
-from dcs.core.models import DrsObjectWithAccess
+from dcs.core.models import DrsObjectResponseModel
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 
 router = APIRouter()
 
 
 RESPONSES = {
-    "downloadEndpointError": {
-        "description": (
-            "Exceptions by ID:"
-            + "\n- envelopeNotFoundError: Communication with service external APIs failed"
-            + "\n- externalAPIError: Communication with service external APIs failed"
-        ),
-        "model": http_response_models.HttpDownloadEndpointErrorModel,
+    "externalAPIError": {
+        "description": ("Exceptions by ID:\n- "),
+        "model": http_exceptions.HttpExternalAPIError.get_body_model(),
     },
-    "downloadExpiredError": {
+    "noSuchEnvelope": {
         "description": (
-            "Exceptions by ID:"
-            + "\n- downloadExpired: The provided download URL is no longer valid"
+            "Exceptions by ID:\n- noSuchEnvelope: The requested envelope was not found"
         ),
-        "model": http_exceptions.HttpDownloadLinkExpiredError.get_body_model(),
-    },
-    "noSuchDownload": {
-        "description": (
-            "Exceptions by ID:"
-            + "\n- noSuchDownload: The requested download was not found"
-        ),
-        "model": http_exceptions.HttpDownloadNotFoundError.get_body_model(),
+        "model": http_exceptions.HttpEnvelopeNotFoundError.get_body_model(),
     },
     "noSuchObject": {
         "description": (
             "Exceptions by ID:\n- noSuchUpload: The requested DrsObject wasn't found"
         ),
         "model": http_exceptions.HttpObjectNotFoundError.get_body_model(),
-    },
-    "objectEndpointError": {
-        "description": (
-            "Exceptions by ID:"
-            + "\n- dbInteractionError: Database communication failed"
-            + "\n- externalAPIError: Communication with service external APIs failed"
-        ),
-        "model": http_response_models.HttpObjectEndpointErrorModel,
     },
     "objectNotInOutbox": {
         "description": (
@@ -76,17 +55,6 @@ RESPONSES = {
             + "specified by Retry-After header."
         ),
         "model": http_response_models.DeliveryDelayedModel,
-    },
-    "rangeParsingError": {
-        "description": (
-            "Exceptions by ID:"
-            + "\n- rangeParsingError: Provided range header is invalid"
-        ),
-        "model": http_exceptions.HttpRangeParsingError.get_body_model(),
-    },
-    "redirectResponse": {
-        "description": (),
-        "model": http_response_models.RedirectResponseModel,
     },
 }
 
@@ -110,18 +78,17 @@ async def health():
     operation_id="getDrsObject",
     tags=["DownloadControllerService"],
     status_code=status.HTTP_200_OK,
-    response_model=DrsObjectWithAccess,
+    response_model=DrsObjectResponseModel,
     response_description="The DrsObject was found successfully.",
     responses={
         status.HTTP_202_ACCEPTED: RESPONSES["objectNotInOutbox"],
         status.HTTP_404_NOT_FOUND: RESPONSES["noSuchObject"],
-        status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["objectEndpointError"],
+        status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["externalAPIError"],
     },
 )
 @inject
 async def get_drs_object(
     object_id: str,
-    public_key: str = Header(...),
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
@@ -129,9 +96,7 @@ async def get_drs_object(
     """
 
     try:
-        drs_object = await data_repository.access_drs_object(
-            drs_id=object_id, public_key=public_key
-        )
+        drs_object = await data_repository.access_drs_object(drs_id=object_id)
         return drs_object
 
     except data_repository.RetryAccessLaterError as retry_later_error:
@@ -146,40 +111,31 @@ async def get_drs_object(
         ) from object_not_found_error
 
     except (
-        data_repository.APICommunicationError,
         data_repository.SecretNotFoundError,
         data_repository.UnexpectedAPIResponseError,
     ) as external_api_error:
         raise http_exceptions.HttpExternalAPIError(
             description=str(external_api_error)
         ) from external_api_error
-    except data_repository.DuplicateEntryError as db_interaction_error:
-        raise http_exceptions.HttpDBInteractionError(
-            description=str(db_interaction_error)
-        ) from db_interaction_error
 
 
 @router.get(
-    "/downloads/{download_id}",
+    "/objects/{object_id}/envelopes/{public_key}",
     summary="",
-    operation_id="serveDownload",
+    operation_id="getEnvelope",
     tags=["DownloadControllerService"],
-    status_code=status.HTTP_206_PARTIAL_CONTENT,
-    response_model=http_response_models.ObjectPartWithEnvelopeModel,
-    response_description="Successfully delivered first file part.",
+    status_code=status.HTTP_200_OK,
+    response_model=http_response_models.EnvelopeResponseModel,
+    response_description="Successfully delivered envelope.",
     responses={
-        status.HTTP_301_MOVED_PERMANENTLY: RESPONSES["redirectResponse"],
-        status.HTTP_400_BAD_REQUEST: RESPONSES["rangeParsingError"],
-        status.HTTP_404_NOT_FOUND: RESPONSES["noSuchDownload"],
-        status.HTTP_410_GONE: RESPONSES["downloadExpiredError"],
-        status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["downloadEndpointError"],
+        status.HTTP_404_NOT_FOUND: RESPONSES["noSuchEnvelope"],
+        status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["externalAPIError"],
     },
 )
 @inject
-async def get_download(
-    download_id: str,
-    signature: str = Query(...),
-    range: str = Header(...),  # pylint: disable=redefined-builtin
+async def get_envelope(
+    object_id: str,
+    public_key: str,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
@@ -187,45 +143,19 @@ async def get_download(
     presigned URL to the S3 object
     """
 
-    # check download information and retreive envelope data
     try:
-        envelope_data, file_id = await data_repository.validate_download_information(
-            download_id=download_id, signature=signature
+        envelope = await data_repository.serve_envelope(
+            drs_id=object_id, public_key=public_key
         )
-    except data_repository.DownloadNotFoundError as error:
-        raise http_exceptions.HttpDownloadNotFoundError() from error
-    except data_repository.DonwloadLinkExpired as error:
-        raise http_exceptions.HttpDownloadLinkExpiredError() from error
-    except data_repository.EnvelopeNotFoundError as error:
-        raise http_exceptions.HttpEnvelopeNotFoundError() from error
+    except data_repository.APICommunicationError as external_api_error:
+        raise http_exceptions.HttpExternalAPIError(
+            description=str(external_api_error)
+        ) from external_api_error
+    except data_repository.DrsObjectNotFoundError as object_not_found_error:
+        raise http_exceptions.HttpObjectNotFoundError(
+            object_id=object_id
+        ) from object_not_found_error
+    except data_repository.EnvelopeNotFoundError as envelope_not_found_error:
+        raise http_exceptions.HttpEnvelopeNotFoundError() from envelope_not_found_error
 
-    offset = envelope_data.offset
-    try:
-        parsed_range = ranges.parse_header(range_header=range, offset=offset)
-    except ranges.RangeParsingError as error:
-        raise http_exceptions.HttpRangeParsingError(message=str(error)) from error
-
-    if parsed_range[0] <= offset:
-        # envelope in range
-        try:
-            object_part = await data_repository.serve_envelope_part(
-                object_id=file_id,
-                parsed_range=parsed_range,
-                envelope_header=envelope_data.header,
-            )
-        except data_repository.APICommunicationError as error:
-            raise http_exceptions.HttpExternalAPIError(description=str(error))
-
-        # headers for 206 response
-        headers = {"Content-Range": f"bytes {parsed_range[0]}-{parsed_range[1]}/*"}
-        return http_responses.HttpObjectPartWithEnvelopeResponse(
-            content=object_part, headers=headers
-        )
-
-    # envelope not in range
-    redirect_url, redirect_header = await data_repository.serve_redirect(
-        object_id=file_id, parsed_range=parsed_range
-    )
-    return http_responses.HttpDownloadRedirectResponse(
-        url=redirect_url, redirect_header=redirect_header
-    )
+    return http_responses.HttEnvelopeResponse(envelope=envelope)

@@ -30,20 +30,6 @@ class DataRepositoryPort(ABC):
             message = f"Failed to communicate with API at {api_url}"
             super().__init__(message)
 
-    class DonwloadLinkExpired(RuntimeError):
-        """Raised when the download attempt has expired"""
-
-        def __init__(self):
-            message = "Download link has expired"
-            super().__init__(message)
-
-    class DownloadNotFoundError(RuntimeError):
-        """Raised when either the download ID or signature do not match a valid download"""
-
-        def __init__(self):
-            message = "No valid download found for the requested URL"
-            super().__init__(message)
-
     class DrsObjectNotFoundError(RuntimeError):
         """Raised when no DRS object was found with the specified DRS ID."""
 
@@ -51,20 +37,11 @@ class DataRepositoryPort(ABC):
             message = f"No DRS object with the following ID exists: {drs_id}"
             super().__init__(message)
 
-    class DuplicateEntryError(RuntimeError):
-        """Raised when insertion into database fails due to a duplicate id"""
-
-        def __init__(self, *, db_name: str, previous_message: str):
-            message = (
-                f"Tried to insert duplicate entry into {db_name}: {previous_message}"
-            )
-            super().__init__(message)
-
     class EnvelopeNotFoundError(RuntimeError):
-        """Raised when an envelope for a given download was not found, but should be present"""
+        """Raised when an envelope for a given download was not found"""
 
-        def __init__(self, *, download_id: str):
-            message = f"Envelope not found for download {download_id}"
+        def __init__(self, *, object_id: str):
+            message = f"Envelope not found for object {object_id}"
             super().__init__(message)
 
     class RetryAccessLaterError(RuntimeError):
@@ -98,9 +75,7 @@ class DataRepositoryPort(ABC):
             super().__init__(message)
 
     @abstractmethod
-    async def access_drs_object(
-        self, *, drs_id: str, public_key: str
-    ) -> models.DrsObjectWithAccess:
+    async def access_drs_object(self, *, drs_id: str) -> models.DrsObjectResponseModel:
         """
         Serve the specified DRS object with access information.
         If it does not exists in the outbox, yet, a RetryAccessLaterError is raised that
@@ -114,33 +89,10 @@ class DataRepositoryPort(ABC):
         ...
 
     @abstractmethod
-    async def validate_download_information(
-        self, *, download_id: str, signature: str
-    ) -> tuple[models.Envelope, str]:
+    async def serve_envelope(self, *, drs_id: str, public_key: str) -> str:
         """
-        TODO
+        Retrieve envelope for the object with the given DRS ID
 
-        :returns: envelope data and file_id for the requested download
-        """
-
-    @abstractmethod
-    async def serve_redirect(
-        self, *, object_id: str, parsed_range: tuple[int, int]
-    ) -> tuple[str, dict[str, str]]:
-        """
-        TODO
-
-        :returns: a tuple containing an S3 URL with adjusted range corresponding to envelope offset
-        """
-        ...
-
-    @abstractmethod
-    async def serve_envelope_part(
-        self, *, object_id: str, parsed_range: tuple[int, int], envelope_header: bytes
-    ) -> bytes:
-        """
-        TODO
-
-        :returns: bytes containing both the envelope and the first file part
+        :returns: base64 encoded envelope bytes
         """
         ...

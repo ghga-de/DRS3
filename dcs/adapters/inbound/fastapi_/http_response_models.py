@@ -14,49 +14,20 @@
 # limitations under the License.
 """Custom composite response models"""
 
-from typing import Union
-
-from pydantic import BaseModel, Field
-
-from dcs.adapters.inbound.fastapi_.http_exceptions import (
-    HttpDBInteractionError,
-    HttpEnvelopeNotFoundError,
-    HttpExternalAPIError,
-)
-
-HttpExternalApiErrorModel = HttpExternalAPIError.get_body_model()
-HttpEnvelopeNotFoundErrorModel = HttpEnvelopeNotFoundError.get_body_model()
-HttpDBInteractionErrorModel = HttpDBInteractionError.get_body_model()
+from pydantic import BaseModel
 
 
 class DeliveryDelayedModel(BaseModel):
     """Pydantic model for 202 Response. Empty, since 202 has no body."""
 
 
+class EnvelopeResponseModel(BaseModel):
+    """Response model for base64 encoded envelope bytes"""
+
+    content: str
+
+
 class RedirectResponseModel(BaseModel):
     """Response model for the objectstorage redirect"""
 
     url: str
-
-
-class HttpDownloadEndpointErrorModel(BaseModel):
-    """Pydantic model for possible 500 responses for the download endpoint"""
-
-    __root__: Union[  # type: ignore
-        HttpEnvelopeNotFoundErrorModel, HttpExternalApiErrorModel
-    ] = Field(...)
-
-
-class HttpObjectEndpointErrorModel(BaseModel):
-    """Pydantic model for possible 500 responses for the download endpoint"""
-
-    __root__: Union[  # type: ignore
-        HttpDBInteractionErrorModel, HttpExternalApiErrorModel
-    ] = Field(...)
-
-
-class ObjectPartWithEnvelopeModel(BaseModel):
-    """Response model for first object part with envelope"""
-
-    media_type: str
-    content: bytes
