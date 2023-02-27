@@ -17,9 +17,9 @@
 
 import re
 
-import requests
 from pydantic import BaseSettings, Field, validator
 
+from dcs.adapters.outbound.http import exceptions
 from dcs.adapters.outbound.http.api_calls import call_ekss_api
 from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
@@ -176,9 +176,14 @@ class DataRepository(DataRepositoryPort):
                 receiver_public_key=public_key,
                 api_base=self._config.ekss_base_url,
             )
-        except requests.ConnectionError as error:
+        except (
+            exceptions.BadResponseCodeError,
+            exceptions.RequestFailedError,
+        ) as error:
             raise self.APICommunicationError(
                 api_url=self._config.ekss_base_url
             ) from error
+        except exceptions.SecretNotFoundError as error:
+            raise self.EnvelopeNotFoundError(object_id=drs_id) from error
 
         return envelope

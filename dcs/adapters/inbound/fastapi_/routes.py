@@ -88,7 +88,6 @@ async def health():
     responses={
         status.HTTP_202_ACCEPTED: RESPONSES["objectNotInOutbox"],
         status.HTTP_404_NOT_FOUND: RESPONSES["noSuchObject"],
-        status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["externalAPIError"],
     },
 )
 @inject
@@ -114,14 +113,6 @@ async def get_drs_object(
         raise http_exceptions.HttpObjectNotFoundError(
             object_id=object_id
         ) from object_not_found_error
-
-    except (
-        data_repository.SecretNotFoundError,
-        data_repository.UnexpectedAPIResponseError,
-    ) as external_api_error:
-        raise http_exceptions.HttpExternalAPIError(
-            description=str(external_api_error)
-        ) from external_api_error
 
 
 @router.get(
@@ -161,6 +152,8 @@ async def get_envelope(
             object_id=object_id
         ) from object_not_found_error
     except data_repository.EnvelopeNotFoundError as envelope_not_found_error:
-        raise http_exceptions.HttpEnvelopeNotFoundError() from envelope_not_found_error
+        raise http_exceptions.HttpEnvelopeNotFoundError(
+            description=str(envelope_not_found_error)
+        ) from envelope_not_found_error
 
     return http_responses.HttEnvelopeResponse(envelope=envelope)

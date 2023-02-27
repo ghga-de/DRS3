@@ -59,12 +59,6 @@ class DataRepositoryPort(ABC):
 
             super().__init__(message)
 
-    class SecretNotFoundError(RuntimeError):
-        """Raised when a secret for a given secret ID could not be found"""
-
-        def __init__(self, *, message: str):
-            super().__init__(message)
-
     class UnexpectedAPIResponseError(RuntimeError):
         """Raise when API call returns unexpected return code"""
 

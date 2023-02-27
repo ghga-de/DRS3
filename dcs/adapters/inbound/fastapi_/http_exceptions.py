@@ -27,11 +27,11 @@ class HttpEnvelopeNotFoundError(HttpCustomExceptionBase):
 
     exception_id = "envelopeNotFoundError"
 
-    def __init__(self, *, status_code: int = 404):
+    def __init__(self, *, description: str, status_code: int = 404):
         """Construct message and init the exception."""
         super().__init__(
             status_code=status_code,
-            description="Envelope for the given object could not be found",
+            description=description,
             data={},
         )
 
