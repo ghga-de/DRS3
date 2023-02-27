@@ -31,7 +31,7 @@ class HttpEnvelopeNotFoundError(HttpCustomExceptionBase):
         """Construct message and init the exception."""
         super().__init__(
             status_code=status_code,
-            description="Envelope for the given download could not be found",
+            description="Envelope for the given object could not be found",
             data={},
         )
 

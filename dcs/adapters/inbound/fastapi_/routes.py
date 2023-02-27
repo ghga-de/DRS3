@@ -32,19 +32,24 @@ router = APIRouter()
 
 
 RESPONSES = {
-    "externalAPIError": {
-        "description": ("Exceptions by ID:\n- "),
-        "model": http_exceptions.HttpExternalAPIError.get_body_model(),
-    },
-    "noSuchEnvelope": {
+    "entryNotFoundError": {
         "description": (
-            "Exceptions by ID:\n- noSuchEnvelope: The requested envelope was not found"
+            "Exceptions by ID:"
+            + "\n- envelopeNotFoundError: The requested envelope could not be retrieved"
+            + "\n- noSuchObject: The requested DrsObject was not found"
         ),
-        "model": http_exceptions.HttpEnvelopeNotFoundError.get_body_model(),
+        "model": http_response_models.EnvelopeEndpointErrorModel,
+    },
+    "externalAPIError": {
+        "description": (
+            "Exceptions by ID:"
+            + "\n- externalAPIError: Communication with a service external API failed"
+        ),
+        "model": http_response_models.ExternalAPIErrorModel,
     },
     "noSuchObject": {
         "description": (
-            "Exceptions by ID:\n- noSuchUpload: The requested DrsObject wasn't found"
+            "Exceptions by ID:\n- noSuchObject: The requested DrsObject was not found"
         ),
         "model": http_exceptions.HttpObjectNotFoundError.get_body_model(),
     },
@@ -121,14 +126,14 @@ async def get_drs_object(
 
 @router.get(
     "/objects/{object_id}/envelopes/{public_key}",
-    summary="",
+    summary="Returns base64 encoded, personalized file envelope",
     operation_id="getEnvelope",
     tags=["DownloadControllerService"],
     status_code=status.HTTP_200_OK,
     response_model=http_response_models.EnvelopeResponseModel,
     response_description="Successfully delivered envelope.",
     responses={
-        status.HTTP_404_NOT_FOUND: RESPONSES["noSuchEnvelope"],
+        status.HTTP_404_NOT_FOUND: RESPONSES["entryNotFoundError"],
         status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["externalAPIError"],
     },
 )
@@ -139,8 +144,8 @@ async def get_envelope(
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
-    Retrieve either a bytestream of the first file part + envelope or a redirect with a
-    presigned URL to the S3 object
+    Retrieve the base64 encoded envelope for a given object based on object id and
+    URL safe base64 encoded public key
     """
 
     try:
