@@ -34,12 +34,6 @@ class EnvelopeResponseModel(BaseModel):
     content: str
 
 
-class RedirectResponseModel(BaseModel):
-    """Response model for the objectstorage redirect"""
-
-    url: str
-
-
 class EnvelopeEndpointErrorModel(BaseModel):
     """Response model for 404 responses of the envelope endpoint"""
 

@@ -15,23 +15,10 @@
 
 """A collection of http responses."""
 
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse
 
 
-class HttpDownloadRedirectResponse(RedirectResponse):
-    """Returns S3 download link with adjusted range in header"""
-
-    response_id = "downloadRedirected"
-
-    def __init__(
-        self, *, url: str, redirect_header: dict[str, str], status_code: int = 301
-    ):
-        """Construct message and init the response."""
-
-        super().__init__(url=url, status_code=status_code, headers=redirect_header)
-
-
-class HttEnvelopeResponse(JSONResponse):
+class HttpEnvelopeResponse(JSONResponse):
     """Return base64 encoded envelope bytes"""
 
     response_id = "envelope"

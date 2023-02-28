@@ -17,7 +17,7 @@
 
 import re
 
-from pydantic import BaseSettings, Field, validator
+from pydantic import BaseSettings, Field, PositiveInt, validator
 
 from dcs.adapters.outbound.http import exceptions
 from dcs.adapters.outbound.http.api_calls import call_ekss_api
@@ -48,6 +48,11 @@ class DataRepositoryConfig(BaseSettings):
         description="URL containing host and port of the EKSS endpoint to retrieve"
         + " personalized envelope from",
         example="http://ekss:8080/",
+    )
+    presigned_url_expires_after: PositiveInt = Field(
+        ...,
+        description="Expiration time in seconds for presigned URLS. Positive integer required",
+        example=30,
     )
 
     # pylint: disable=no-self-argument
@@ -104,7 +109,7 @@ class DataRepository(DataRepositoryPort):
         access_url = await self._object_storage.get_object_download_url(
             bucket_id=self._config.outbox_bucket,
             object_id=drs_object.file_id,
-            expires_after=30,
+            expires_after=self._config.presigned_url_expires_after,
         )
 
         return models.DrsObjectWithAccess(

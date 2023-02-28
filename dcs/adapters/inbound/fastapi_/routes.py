@@ -156,4 +156,4 @@ async def get_envelope(
             description=str(envelope_not_found_error)
         ) from envelope_not_found_error
 
-    return http_responses.HttEnvelopeResponse(envelope=envelope)
+    return http_responses.HttpEnvelopeResponse(envelope=envelope)
