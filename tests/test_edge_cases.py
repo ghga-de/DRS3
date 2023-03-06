@@ -15,9 +15,11 @@
 
 """Tests edge cases not covered by the typical journey test."""
 
+import base64
 
 import pytest
 from fastapi import status
+
 from hexkit.providers.mongodb.testutils import mongodb_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
@@ -40,8 +42,27 @@ async def test_access_non_existing(joint_fixture: JointFixture):  # noqa F811
     """Checks that requesting access to a non-existing DRS object fails with the
     expected exception."""
 
-    # TODO: not working for now, will be fixed in GDEV-1612
-    return True
     # request access to non existing DRS object:
     response = await joint_fixture.rest_client.get("/objects/my-non-existing-id")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_non_existing_envelope(joint_fixture: JointFixture):  # noqa F811
+    """Checks both failure cases for the envelope endpoint, i.e. non-existing DRS
+    object and unknown public key for existing object"""
+
+    invalid_pubkey = base64.urlsafe_b64encode(b"invalid_key")
+    valid_pubkey = base64.urlsafe_b64encode(b"valid_key")
+    invalid_drs_id = "my-non-existing-id"
+
+    # request access to non existing DRS object:
+    response = await joint_fixture.rest_client.get(
+        f"/objects/{invalid_drs_id}/envelopes/{invalid_pubkey}", timeout=60
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    response = await joint_fixture.rest_client.get(
+        f"/objects/{invalid_drs_id}/envelopes/{valid_pubkey}", timeout=60
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND

@@ -62,6 +62,6 @@ class Container(ContainerBase):
     )
 
     # inbound providers:
-    event_subscriber = get_constructor(
-        KafkaEventSubscriber, config=config, translator=event_sub_translator
-    )
+    # event_subscriber = get_constructor(
+    #    KafkaEventSubscriber, config=config, translator=event_sub_translator
+    # )
