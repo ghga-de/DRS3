@@ -3,7 +3,7 @@ api_route: /ga4gh/drs/v1
 auto_reload: true
 docs_url: /docs
 drs_server_uri: drs://localhost:8080/
-host: 0.0.0.0
+host: 127.0.0.1
 log_level: info
 openapi_url: /openapi.json
 outbox_bucket: test-outbox
