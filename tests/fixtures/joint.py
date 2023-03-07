@@ -38,11 +38,12 @@ from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture  # F401
 from hexkit.providers.mongodb.testutils import mongodb_fixture
 from hexkit.providers.s3.testutils import S3Fixture, s3_fixture
+from pydantic import BaseSettings
 
 from dcs.config import Config
 from dcs.container import Container
 from dcs.core import models
-from dcs.main import get_configured_container
+from dcs.main import get_configured_container, get_rest_api
 from tests.fixtures.config import get_config
 from tests.fixtures.mock_api.testcontainer import MockAPIContainer
 
@@ -60,6 +61,12 @@ def get_free_port() -> int:
     sock = socket.socket()
     sock.bind(("", 0))
     return int(sock.getsockname()[1])
+
+
+class EKSSBaseInjector(BaseSettings):
+    """Dynamically inject ekss url"""
+
+    ekss_base_url: str
 
 
 @dataclass
@@ -80,21 +87,32 @@ async def joint_fixture(
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing"""
 
-    # merge configs from different sources with the default one:
-    config = get_config(
-        sources=[mongodb_fixture.config, s3_fixture.config, kafka_fixture.config]
-    )
+    with MockAPIContainer() as ekss_api:
+        # merge configs from different sources with the default one:
 
-    # create a DI container instance:translators
-    async with get_configured_container(config=config) as container:
-        container.wire(modules=["dcs.adapters.inbound.fastapi_.routes"])
+        ekss_config = EKSSBaseInjector(ekss_base_url=ekss_api.get_connection_url())
 
-        # create storage entities:
-        await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
+        config = get_config(
+            sources=[
+                mongodb_fixture.config,
+                s3_fixture.config,
+                kafka_fixture.config,
+                ekss_config,
+            ]
+        )
+        # create a DI container instance:translators
+        async with get_configured_container(config=config) as container:
+            container.wire(modules=["dcs.adapters.inbound.fastapi_.routes"])
 
-        # setup an API test client:
-        with MockAPIContainer():
-            async with httpx.AsyncClient() as rest_client:
+            # create storage entities:
+            await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
+
+            api = get_rest_api(config=config)
+            port = get_free_port()
+            # setup an API test client:
+            async with httpx.AsyncClient(
+                app=api, base_url=f"http://localhost:{port}"
+            ) as rest_client:
                 yield JointFixture(
                     config=config,
                     container=container,
@@ -158,6 +176,6 @@ async def populated_fixture(
     assert file_registered_event.upload_date == EXAMPLE_FILE.creation_date
     drs_id = file_registered_event.drs_uri.split("/")[-1]
 
-    return PopulatedFixture(
+    yield PopulatedFixture(
         drs_id=drs_id, example_file=EXAMPLE_FILE, joint_fixture=joint_fixture
     )

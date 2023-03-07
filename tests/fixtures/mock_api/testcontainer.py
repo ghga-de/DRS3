@@ -29,7 +29,7 @@ class MockAPIContainer(DockerContainer):
 
     def __init__(
         self,
-        image: str = "ghga/fastapi_essentials:0.73.0",
+        image: str = "ghga/fastapi_essentials:0.89.1",
         port: int = 8000,
     ) -> None:
         """Initialize the Fastapi test container.

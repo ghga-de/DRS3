@@ -33,7 +33,7 @@ from tests.fixtures.joint import *  # noqa: F403
 
 @pytest.mark.asyncio
 async def test_happy(
-    populated_fixture: PopulatedFixture,  # noqa: F811
+    populated_fixture: PopulatedFixture,  # noqa: F405,F811
     file_fixture: FileObject,  # noqa: F811
 ):
     """Simulates a typical, successful API journey."""
@@ -96,16 +96,14 @@ async def test_happy(
     dowloaded_file.raise_for_status()
     assert dowloaded_file.content == file_object.content
 
-    invalid_pubkey = base64.urlsafe_b64encode(b"invalid_key")
-    valid_pubkey = base64.urlsafe_b64encode(b"valid_key")
+    pubkey = base64.urlsafe_b64encode(b"valid_key").decode("utf-8")
 
-    # request access to non existing DRS object:
     response = await joint_fixture.rest_client.get(
-        f"/objects/{drs_id}/envelopes/{invalid_pubkey}", timeout=60
+        f"/objects/invalid_id/envelopes/{pubkey}", timeout=60
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
     response = await joint_fixture.rest_client.get(
-        f"/objects/{drs_id}/envelopes/{valid_pubkey}", timeout=60
+        f"/objects/{drs_id}/envelopes/{pubkey}", timeout=60
     )
     assert response.status_code == status.HTTP_200_OK

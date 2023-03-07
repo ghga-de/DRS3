@@ -15,7 +15,7 @@
 
 
 from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from httpyexpect.server import HttpCustomExceptionBase
 
 
@@ -67,7 +67,7 @@ async def ready():
     """
     Readiness endpoint for container
     """
-    return JSONResponse(None, status_code=status.HTTP_204_NO_CONTENT)
+    return Response(None, status_code=status.HTTP_204_NO_CONTENT)
 
 
 @app.get(
