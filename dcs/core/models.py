@@ -41,22 +41,14 @@ class FileToRegister(BaseModel):
     A model containing the metadata needed to register a new DRS object.
     """
 
-    file_id: str
+    id: str
     decryption_secret_id: str
     decrypted_sha256: str
     decrypted_size: int
     creation_date: str
 
 
-class DrsObject(FileToRegister):
-    """
-    A model for describing essential DRS object metadata.
-    """
-
-    id: str
-
-
-class DrsObjectWithUri(DrsObject):
+class DrsObjectWithUri(FileToRegister):
     """A model for describing DRS object metadata including a self URI."""
 
     self_uri: str

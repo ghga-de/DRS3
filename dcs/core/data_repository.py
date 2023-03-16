@@ -92,7 +92,7 @@ class DataRepository(DataRepositoryPort):
         return f"{self._config.drs_server_uri}{drs_id}"
 
     def _get_model_with_self_uri(
-        self, *, drs_object: models.DrsObject
+        self, *, drs_object: models.FileToRegister
     ) -> models.DrsObjectWithUri:
         """Add the DRS self URI to an DRS object."""
 
@@ -102,13 +102,13 @@ class DataRepository(DataRepositoryPort):
         )
 
     async def _get_access_model(
-        self, *, drs_object: models.DrsObject
+        self, *, drs_object: models.FileToRegister
     ) -> models.DrsObjectWithAccess:
         """Get a DRS Object model with access information."""
 
         access_url = await self._object_storage.get_object_download_url(
             bucket_id=self._config.outbox_bucket,
-            object_id=drs_object.file_id,
+            object_id=drs_object.id,
             expires_after=self._config.presigned_url_expires_after,
         )
 
@@ -135,7 +135,7 @@ class DataRepository(DataRepositoryPort):
 
         # check if the file corresponding to the DRS object is already in the outbox:
         if not await self._object_storage.does_object_exist(
-            bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
+            bucket_id=self._config.outbox_bucket, object_id=drs_object.id
         ):
             # publish an event to request a stage of the corresponding file:
             await self._event_publisher.unstaged_download_requested(
@@ -157,10 +157,10 @@ class DataRepository(DataRepositoryPort):
         """Register a file as a new DRS Object."""
 
         # write file entry to database
-        drs_object = await self._drs_object_dao.insert(file)
+        await self._drs_object_dao.insert(file)
 
         # publish message that the drs file has been registered
-        drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
+        drs_object_with_uri = self._get_model_with_self_uri(drs_object=file)
         await self._event_publisher.file_registered(drs_object=drs_object_with_uri)
 
     async def serve_envelope(self, *, drs_id: str, public_key: str) -> str:
