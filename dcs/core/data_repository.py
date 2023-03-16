@@ -92,29 +92,29 @@ class DataRepository(DataRepositoryPort):
         return f"{self._config.drs_server_uri}{drs_id}"
 
     def _get_model_with_self_uri(
-        self, *, drs_object: models.FileToRegister
+        self, *, drs_object: models.DrsObject
     ) -> models.DrsObjectWithUri:
         """Add the DRS self URI to an DRS object."""
 
         return models.DrsObjectWithUri(
             **drs_object.dict(),
-            self_uri=self._get_drs_uri(drs_id=drs_object.id),
+            self_uri=self._get_drs_uri(drs_id=drs_object.file_id),
         )
 
     async def _get_access_model(
-        self, *, drs_object: models.FileToRegister
+        self, *, drs_object: models.DrsObject
     ) -> models.DrsObjectWithAccess:
         """Get a DRS Object model with access information."""
 
         access_url = await self._object_storage.get_object_download_url(
             bucket_id=self._config.outbox_bucket,
-            object_id=drs_object.id,
+            object_id=drs_object.file_id,
             expires_after=self._config.presigned_url_expires_after,
         )
 
         return models.DrsObjectWithAccess(
             **drs_object.dict(),
-            self_uri=self._get_drs_uri(drs_id=drs_object.id),
+            self_uri=self._get_drs_uri(drs_id=drs_object.file_id),
             access_url=access_url,
         )
 
@@ -135,7 +135,7 @@ class DataRepository(DataRepositoryPort):
 
         # check if the file corresponding to the DRS object is already in the outbox:
         if not await self._object_storage.does_object_exist(
-            bucket_id=self._config.outbox_bucket, object_id=drs_object.id
+            bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
         ):
             # publish an event to request a stage of the corresponding file:
             await self._event_publisher.unstaged_download_requested(
@@ -153,7 +153,7 @@ class DataRepository(DataRepositoryPort):
 
         return drs_object_with_access.convert_to_drs_response_model()
 
-    async def register_new_file(self, *, file: models.FileToRegister):
+    async def register_new_file(self, *, file: models.DrsObject):
         """Register a file as a new DRS Object."""
 
         # write file entry to database

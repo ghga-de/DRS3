@@ -47,8 +47,8 @@ from dcs.main import get_configured_container, get_rest_api
 from tests.fixtures.config import get_config
 from tests.fixtures.mock_api.testcontainer import MockAPIContainer
 
-EXAMPLE_FILE = models.FileToRegister(
-    id="examplefile001",
+EXAMPLE_FILE = models.DrsObject(
+    file_id="examplefile001",
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
     creation_date=datetime.now().isoformat(),
     decrypted_size=12345,
@@ -128,7 +128,7 @@ class PopulatedFixture:
     """Returned by `populated_fixture()`."""
 
     drs_id: str
-    example_file: models.FileToRegister
+    example_file: models.DrsObject
     joint_fixture: JointFixture
 
 
@@ -139,7 +139,7 @@ async def populated_fixture(
     """Prepopulate state for an existing DRS object"""
     # publish an event to register a new file for download:
     files_to_register_event = event_schemas.FileInternallyRegistered(
-        file_id=EXAMPLE_FILE.id,
+        file_id=EXAMPLE_FILE.file_id,
         upload_date=EXAMPLE_FILE.creation_date,
         decrypted_size=EXAMPLE_FILE.decrypted_size,
         decrypted_sha256=EXAMPLE_FILE.decrypted_sha256,
@@ -171,10 +171,12 @@ async def populated_fixture(
     file_registered_event = event_schemas.FileRegisteredForDownload(
         **recorder.recorded_events[0].payload
     )
-    assert file_registered_event.file_id == EXAMPLE_FILE.id
+    assert file_registered_event.file_id == EXAMPLE_FILE.file_id
     assert file_registered_event.decrypted_sha256 == EXAMPLE_FILE.decrypted_sha256
     assert file_registered_event.upload_date == EXAMPLE_FILE.creation_date
 
     yield PopulatedFixture(
-        drs_id=EXAMPLE_FILE.id, example_file=EXAMPLE_FILE, joint_fixture=joint_fixture
+        drs_id=EXAMPLE_FILE.file_id,
+        example_file=EXAMPLE_FILE,
+        joint_fixture=joint_fixture,
     )

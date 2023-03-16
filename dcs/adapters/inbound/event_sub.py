@@ -70,8 +70,8 @@ class EventSubTranslator(EventSubscriberProtocol):
             payload=payload, schema=event_schemas.FileInternallyRegistered
         )
 
-        file = models.FileToRegister(
-            id=validated_payload.file_id,
+        file = models.DrsObject(
+            file_id=validated_payload.file_id,
             decryption_secret_id=validated_payload.decryption_secret_id,
             decrypted_sha256=validated_payload.decrypted_sha256,
             decrypted_size=validated_payload.decrypted_size,

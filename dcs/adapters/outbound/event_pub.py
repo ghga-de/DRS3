@@ -95,7 +95,7 @@ class EventPubTranslator(EventPublisherPort):
         auditing purposes."""
 
         payload = event_schemas.FileDownloadServed(
-            file_id=drs_object.id,
+            file_id=drs_object.file_id,
             decrypted_sha256=drs_object.decrypted_sha256,
             context="unkown",
         )
@@ -105,7 +105,7 @@ class EventPubTranslator(EventPublisherPort):
             payload=payload_dict,
             type_=self._config.download_served_event_type,
             topic=self._config.download_served_event_topic,
-            key=drs_object.id,
+            key=drs_object.file_id,
         )
 
     async def unstaged_download_requested(
@@ -115,7 +115,7 @@ class EventPubTranslator(EventPublisherPort):
         is not yet available in the outbox."""
 
         payload = event_schemas.NonStagedFileRequested(
-            file_id=drs_object.id, decrypted_sha256=drs_object.decrypted_sha256
+            file_id=drs_object.file_id, decrypted_sha256=drs_object.decrypted_sha256
         )
         payload_dict = json.loads(payload.json())
 
@@ -123,14 +123,14 @@ class EventPubTranslator(EventPublisherPort):
             payload=payload_dict,
             type_=self._config.unstaged_download_event_type,
             topic=self._config.unstaged_download_event_topic,
-            key=drs_object.id,
+            key=drs_object.file_id,
         )
 
     async def file_registered(self, *, drs_object: models.DrsObjectWithUri) -> None:
         """Communicates the event that a file has been registered."""
 
         payload = event_schemas.FileRegisteredForDownload(
-            file_id=drs_object.id,
+            file_id=drs_object.file_id,
             decrypted_sha256=drs_object.decrypted_sha256,
             upload_date=drs_object.creation_date,
             drs_uri=drs_object.self_uri,
@@ -141,5 +141,5 @@ class EventPubTranslator(EventPublisherPort):
             payload=payload_dict,
             type_=self._config.file_registered_event_type,
             topic=self._config.file_registered_event_topic,
-            key=drs_object.id,
+            key=drs_object.file_id,
         )

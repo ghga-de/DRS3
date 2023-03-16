@@ -45,7 +45,7 @@ async def test_happy(
     # (An check that an event is published indicating that the file is not in
     # outbox yet.)
     non_staged_requested_event = event_schemas.NonStagedFileRequested(
-        file_id=example_file.id, decrypted_sha256=example_file.decrypted_sha256
+        file_id=example_file.file_id, decrypted_sha256=example_file.decrypted_sha256
     )
     async with joint_fixture.kafka.expect_events(
         events=[
@@ -67,7 +67,7 @@ async def test_happy(
     file_object = file_fixture.copy(
         update={
             "bucket_id": joint_fixture.config.outbox_bucket,
-            "object_id": example_file.id,
+            "object_id": example_file.file_id,
         }
     )
     await joint_fixture.s3.populate_file_objects([file_object])
@@ -75,7 +75,7 @@ async def test_happy(
     # retry the access request:
     # (An check that an event is published indicating that a download was served.)
     download_served_event = event_schemas.FileDownloadServed(
-        file_id=example_file.id,
+        file_id=example_file.file_id,
         decrypted_sha256=example_file.decrypted_sha256,
         context="unkown",
     )

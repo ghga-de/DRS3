@@ -36,19 +36,19 @@ class Checksum(BaseModel):
     type: Literal["sha-256"] = "sha-256"
 
 
-class FileToRegister(BaseModel):
+class DrsObject(BaseModel):
     """
     A model containing the metadata needed to register a new DRS object.
     """
 
-    id: str
+    file_id: str
     decryption_secret_id: str
     decrypted_sha256: str
     decrypted_size: int
     creation_date: str
 
 
-class DrsObjectWithUri(FileToRegister):
+class DrsObjectWithUri(DrsObject):
     """A model for describing DRS object metadata including a self URI."""
 
     self_uri: str
@@ -80,7 +80,7 @@ class DrsObjectWithAccess(DrsObjectWithUri):
             access_methods=[access_method],
             checksums=[checksum],
             created_time=self.creation_date,
-            id=self.id,
+            id=self.file_id,
             self_uri=self.self_uri,
             size=self.decrypted_size,
         )
