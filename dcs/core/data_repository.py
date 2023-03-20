@@ -152,7 +152,7 @@ class DataRepository(DataRepositoryPort):
         await self._event_publisher.download_served(drs_object=drs_object_with_uri)
 
         # CLI needs to have the encrypted size to correctly download all file parts
-        encrypted_size = self._object_storage.get_object_size(
+        encrypted_size = await self._object_storage.get_object_size(
             bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
         )
         return drs_object_with_access.convert_to_drs_response_model(size=encrypted_size)
