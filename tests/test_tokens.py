@@ -16,6 +16,7 @@
 
 import pytest
 from ghga_service_commons.utils import jwt_helpers
+from jwcrypto.jws import InvalidJWSSignature
 from jwcrypto.jwt import JWTExpired
 
 from dcs.core.jwt_validation import get_validated_token
@@ -59,3 +60,14 @@ def test_validation_sad():
     )
     with pytest.raises(JWTExpired):
         get_validated_token(token=signed_token, signing_pubkey=pubkey)
+
+    # test validation failure with wrong key
+    jwk = jwt_helpers.generate_jwk()
+    pem = jwk.export_to_pem()
+    wrong_pubkey = (
+        pem.strip(b"-----BEGIN PUBLIC KEY-----\n")
+        .strip(b"\n-----END PUBLIC KEY-----\n")
+        .decode("utf-8")
+    )
+    with pytest.raises(InvalidJWSSignature):
+        get_validated_token(token=signed_token, signing_pubkey=wrong_pubkey)

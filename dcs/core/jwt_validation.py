@@ -19,8 +19,8 @@ import json
 from jwcrypto import jwk, jwt
 
 
-def get_validated_token(token: str, signing_pubkey: str):
-    """TODO"""
+def get_validated_token(token: str, signing_pubkey: str) -> dict[str, str]:
+    """Validate token and return decoded information as dict"""
     # create JWK from signing public key
     wrapped_pem = (
         f"-----BEGIN PUBLIC KEY-----\n{signing_pubkey}\n-----END PUBLIC KEY-----\n"
