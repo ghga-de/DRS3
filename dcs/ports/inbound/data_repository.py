@@ -59,6 +59,28 @@ class DataRepositoryPort(ABC):
 
             super().__init__(message)
 
+    class SignatureError(RuntimeError):
+        """Raised when a work order token signature or the provided signing public key
+        are invalid"""
+
+        def __init__(self):
+            message = "Work order token signature could not be validated."
+            super().__init__(message)
+
+    class TokenExpiredError(RuntimeError):
+        """Raised when a work order token is expired"""
+
+        def __init__(self):
+            message = "Work order token is expired."
+            super().__init__(message)
+
+    class TokenMalformedError(RuntimeError):
+        """Raised when a work order token is expired"""
+
+        def __init__(self):
+            message = "The provided work order token is malformed."
+            super().__init__(message)
+
     class UnexpectedAPIResponseError(RuntimeError):
         """Raise when API call returns unexpected return code"""
 
@@ -75,6 +97,11 @@ class DataRepositoryPort(ABC):
         If it does not exists in the outbox, yet, a RetryAccessLaterError is raised that
         instructs to retry the call after a specified amount of time.
         """
+        ...
+
+    @abstractmethod
+    def get_validated_token_data(self, *, token: str) -> dict[str, str]:
+        """Decode and validate work order token, return token data"""
         ...
 
     @abstractmethod

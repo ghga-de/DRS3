@@ -16,8 +16,10 @@
 Module containing the main FastAPI router and all route functions.
 """
 
+from typing import Annotated
+
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Header, status
 
 from dcs.adapters.inbound.fastapi_ import (
     http_exceptions,
@@ -93,11 +95,21 @@ async def health():
 @inject
 async def get_drs_object(
     object_id: str,
+    authorization: Annotated[str, Header()],
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
     Get info about a ``DrsObject``.
     """
+
+    try:
+        data_repository.get_validated_token_data(token=authorization)
+    except data_repository.SignatureError as signature_error:
+        raise http_exceptions.HttpTokenSignatureError() from signature_error
+    except data_repository.TokenExpiredError as expired_error:
+        raise http_exceptions.HttpTokenExpiredError() from expired_error
+    except data_repository.TokenMalformedError as token_error:
+        raise http_exceptions.HttpTokenMalformedError() from token_error
 
     try:
         drs_object = await data_repository.access_drs_object(drs_id=object_id)
@@ -116,7 +128,7 @@ async def get_drs_object(
 
 
 @router.get(
-    "/objects/{object_id}/envelopes/{public_key}",
+    "/objects/{object_id}/envelopes",
     summary="Returns base64 encoded, personalized file envelope",
     operation_id="getEnvelope",
     tags=["DownloadControllerService"],
@@ -131,13 +143,24 @@ async def get_drs_object(
 @inject
 async def get_envelope(
     object_id: str,
-    public_key: str,
+    authorization: Annotated[str, Header()],
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
     Retrieve the base64 encoded envelope for a given object based on object id and
     URL safe base64 encoded public key
     """
+
+    try:
+        decoded_token = data_repository.get_validated_token_data(token=authorization)
+    except data_repository.SignatureError as signature_error:
+        raise http_exceptions.HttpTokenSignatureError() from signature_error
+    except data_repository.TokenExpiredError as expired_error:
+        raise http_exceptions.HttpTokenExpiredError() from expired_error
+    except data_repository.TokenMalformedError as token_error:
+        raise http_exceptions.HttpTokenMalformedError() from token_error
+
+    public_key = decoded_token["user_public_crypt4gh_key"]
 
     try:
         envelope = await data_repository.serve_envelope(

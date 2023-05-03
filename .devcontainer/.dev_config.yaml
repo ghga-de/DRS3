@@ -35,3 +35,5 @@ files_to_register_topic: internal_file_registry
 files_to_register_type: file_registered
 unstaged_download_event_topic: file_downloads
 unstaged_download_event_type: unstaged_download_requested
+
+wps_signing_pubkey: dummy-key

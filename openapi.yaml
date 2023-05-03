@@ -253,6 +253,12 @@ paths:
         schema:
           title: Object Id
           type: string
+      - in: query
+        name: authorization
+        required: true
+        schema:
+          title: Authorization
+          type: string
       responses:
         '200':
           content:
@@ -286,7 +292,7 @@ paths:
         to fetch object bytes.
       tags:
       - DownloadControllerService
-  /objects/{object_id}/envelopes/{public_key}:
+  /objects/{object_id}/envelopes:
     get:
       description: 'Retrieve the base64 encoded envelope for a given object based
         on object id and
@@ -300,11 +306,11 @@ paths:
         schema:
           title: Object Id
           type: string
-      - in: path
-        name: public_key
+      - in: query
+        name: authorization
         required: true
         schema:
-          title: Public Key
+          title: Authorization
           type: string
       responses:
         '200':

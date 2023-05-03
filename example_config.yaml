@@ -35,3 +35,4 @@ service_name: dcs
 unstaged_download_event_topic: file_downloads
 unstaged_download_event_type: unstaged_download_requested
 workers: 1
+wps_signing_pubkey: dummy-key

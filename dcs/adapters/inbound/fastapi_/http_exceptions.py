@@ -63,3 +63,46 @@ class HttpObjectNotFoundError(HttpCustomExceptionBase):
             description="The requested DrsObject wasn't found",
             data={"object_id": object_id},
         )
+
+
+class HttpTokenExpiredError(HttpCustomExceptionBase):
+    """Raised when a work order token is expired"""
+
+    exception_id = "tokenExpiredError"
+
+    def __init__(self, *, status_code: int = 403):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description="The work order token is expired.",
+            data={},
+        )
+
+
+class HttpTokenMalformedError(HttpCustomExceptionBase):
+    """Raised when a work order token does not conform to the expected form"""
+
+    exception_id = "tokenMalformedError"
+
+    def __init__(self, *, status_code: int = 403):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description="The work order token is malformed.",
+            data={},
+        )
+
+
+class HttpTokenSignatureError(HttpCustomExceptionBase):
+    """Raised when a work order token signature or the provided signing public key
+    are invalid"""
+
+    exception_id = "tokenSignatureError"
+
+    def __init__(self, *, status_code: int = 403):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description="The work order token signature could not be validated.",
+            data={},
+        )

@@ -17,11 +17,14 @@
 
 import re
 
+from jwcrypto.jws import InvalidJWSSignature
+from jwcrypto.jwt import JWTExpired
 from pydantic import BaseSettings, Field, PositiveInt, validator
 
 from dcs.adapters.outbound.http import exceptions
 from dcs.adapters.outbound.http.api_calls import call_ekss_api
 from dcs.core import models
+from dcs.core.jwt_validation import get_validated_token
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort, ResourceNotFoundError
 from dcs.ports.outbound.event_pub import EventPublisherPort
@@ -53,6 +56,10 @@ class DataRepositoryConfig(BaseSettings):
         ...,
         description="Expiration time in seconds for presigned URLS. Positive integer required",
         example=30,
+    )
+    wps_signing_pubkey: str = Field(
+        ...,
+        description="Base64 encoded public key of the keypair that signed the work order tokens",
     )
 
     # pylint: disable=no-self-argument
@@ -156,6 +163,19 @@ class DataRepository(DataRepositoryPort):
             bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
         )
         return drs_object_with_access.convert_to_drs_response_model(size=encrypted_size)
+
+    def get_validated_token_data(self, *, token: str) -> dict[str, str]:
+        """Decode and validate work order token, return token data"""
+        pubkey = self._config.wps_signing_pubkey
+        try:
+            decoded_token = get_validated_token(token=token, signing_pubkey=pubkey)
+        except InvalidJWSSignature as error:
+            raise self.SignatureError from error
+        except JWTExpired as error:
+            raise self.TokenExpiredError from error
+        except ValueError as error:
+            raise self.TokenMalformedError from error
+        return decoded_token
 
     async def register_new_file(self, *, file: models.DrsObject):
         """Register a file as a new DRS Object."""

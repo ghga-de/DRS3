@@ -170,6 +170,14 @@
       "exclusiveMinimum": 0,
       "type": "integer"
     },
+    "wps_signing_pubkey": {
+      "title": "Wps Signing Pubkey",
+      "description": "Base64 encoded public key of the keypair that signed the work order tokens",
+      "env_names": [
+        "dcs_wps_signing_pubkey"
+      ],
+      "type": "string"
+    },
     "s3_endpoint_url": {
       "title": "S3 Endpoint Url",
       "description": "URL to the S3 API.",
@@ -379,6 +387,7 @@
     "drs_server_uri",
     "ekss_base_url",
     "presigned_url_expires_after",
+    "wps_signing_pubkey",
     "s3_endpoint_url",
     "s3_access_key_id",
     "s3_secret_access_key"
