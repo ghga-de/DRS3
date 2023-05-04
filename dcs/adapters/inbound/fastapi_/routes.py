@@ -16,6 +16,9 @@
 Module containing the main FastAPI router and all route functions.
 """
 
+import base64
+import binascii
+
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
@@ -72,6 +75,15 @@ RESPONSES = {
             + "is wrong or the token has been tampered with"
         ),
         "model": http_response_models.TokenAuthenticationErrorModel,
+    },
+    "userPubkeyMalformedError": {
+        "description": (
+            "The request could not be processed as the user public key included in the "
+            + "work order token is malformed"
+            + "Exceptions by ID:"
+            + "\n- userPubkeyMalformedError: User pubkey is empty/missing or cannot be decoded"
+        ),
+        "model": http_exceptions.HttpUserPubkeyMalformed.get_body_model(),
     },
 }
 
@@ -146,13 +158,14 @@ async def get_drs_object(
     response_model=http_response_models.EnvelopeResponseModel,
     response_description="Successfully delivered envelope.",
     responses={
+        status.HTTP_400_BAD_REQUEST: RESPONSES["userPubkeyMalformedError"],
         status.HTTP_403_FORBIDDEN: RESPONSES["tokenAuthenticationError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["entryNotFoundError"],
         status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["externalAPIError"],
     },
 )
 @inject
-async def get_envelope(
+async def get_envelope(  # noqa: C901
     object_id: str,
     work_order_token: str = http_authorization.require_work_order_token,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
@@ -171,7 +184,15 @@ async def get_envelope(
     except data_repository.TokenMalformedError as token_error:
         raise http_exceptions.HttpTokenMalformedError() from token_error
 
-    public_key = decoded_token["user_public_crypt4gh_key"]
+    public_key = decoded_token.get("user_public_crypt4gh_key", "")
+
+    if not public_key:
+        raise http_exceptions.HttpUserPubkeyMalformed()
+
+    try:
+        base64.b64decode(public_key)
+    except binascii.Error as error:
+        raise http_exceptions.HttpUserPubkeyMalformed() from error
 
     try:
         envelope = await data_repository.serve_envelope(

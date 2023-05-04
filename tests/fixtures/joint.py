@@ -72,7 +72,12 @@ def get_work_order_token(valid_seconds: int = 30) -> tuple[SignedToken, PubKey]:
     """Generate work order token for testing"""
     jwk = jwt_helpers.generate_jwk()
 
-    claims = {"name": "John Doe", "role": "admin", "user_public_crypt4gh_key": ""}
+    claims = {
+        "name": "John Doe",
+        "role": "admin",
+        "user_public_crypt4gh_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEzmp+APYzpOlRYJ0edgnPiEJTsaAY"
+        + "\nwXCQlMvV/fZptIQUmGX18AgoTZlzRNwHTtj10LUHPdWUWuuY3MBJXu5boA==",
+    }
     signed_token = jwt_helpers.sign_and_serialize_token(
         claims=claims, key=jwk, valid_seconds=valid_seconds
     )

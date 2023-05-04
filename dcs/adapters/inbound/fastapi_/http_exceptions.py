@@ -108,3 +108,19 @@ class HttpTokenSignatureError(HttpCustomExceptionBase):
             description="The work order token signature could not be validated.",
             data={},
         )
+
+
+class HttpUserPubkeyMalformed(HttpCustomExceptionBase):
+    """
+    Raised when the user pubkey from the work order token is empty/missing or cannot be decoded
+    """
+
+    exception_id = "userPubkeyMalformedError"
+
+    def __init__(self, *, status_code: int = 400):
+        """Construct message and init the exception."""
+        super().__init__(
+            status_code=status_code,
+            description="User pubkey from the work order token is malformed.",
+            data={},
+        )
