@@ -322,6 +322,10 @@ components:
       - type
       title: ValidationError
       type: object
+  securitySchemes:
+    HTTPBearer:
+      scheme: bearer
+      type: http
 info:
   description: "A service managing access to file objects storedon an S3-compatible\
     \ Object Storage. \n\nThis is an implementation of the DRS standard from the Global\
@@ -353,12 +357,6 @@ paths:
         required: true
         schema:
           title: Object Id
-          type: string
-      - in: query
-        name: authorization
-        required: true
-        schema:
-          title: Authorization
           type: string
       responses:
         '200':
@@ -403,6 +401,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
+      security:
+      - HTTPBearer: []
       summary: Returns object metadata, and a list of access methods that can be used
         to fetch object bytes.
       tags:
@@ -421,12 +421,6 @@ paths:
         schema:
           title: Object Id
           type: string
-      - in: query
-        name: authorization
-        required: true
-        schema:
-          title: Authorization
-          type: string
       responses:
         '200':
           content:
@@ -434,6 +428,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/EnvelopeResponseModel'
           description: Successfully delivered envelope.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenAuthenticationErrorModel'
+          description: 'The request could not be processed due to issues with the
+            work order tokenExceptions by ID:
+
+            - tokenExpiredError: The provided token is no longer valid
+
+            - tokenMalformedError: The token does not conform to the expected format
+
+            - tokenSignatureError: Either the public key provided for validation is
+            wrong or the token has been tampered with'
         '404':
           content:
             application/json:
@@ -458,6 +466,8 @@ paths:
           description: 'Exceptions by ID:
 
             - externalAPIError: Communication with a service external API failed'
+      security:
+      - HTTPBearer: []
       summary: Returns base64 encoded, personalized file envelope
       tags:
       - DownloadControllerService

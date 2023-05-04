@@ -14,7 +14,9 @@
 # limitations under the License.
 """Mock EKSS endpoints"""
 
-from fastapi import FastAPI, Request, status
+from typing import Annotated, Union
+
+from fastapi import FastAPI, Header, Request, status
 from fastapi.responses import JSONResponse, Response
 from httpyexpect.server import HttpCustomExceptionBase
 
@@ -70,10 +72,10 @@ async def ready():
     return Response(None, status_code=status.HTTP_204_NO_CONTENT)
 
 
-@app.get(
-    "/secrets/{secret_id}/envelopes/{receiver_public_key}", summary="ekss_api_call_mock"
-)
-async def ekss_mock(secret_id: str, receiver_public_key: str):
+@app.get("/secrets/{secret_id}/envelopes", summary="ekss_api_call_mock")
+async def ekss_mock(
+    secret_id: str, authorization: Annotated[Union[str, None], Header()]
+):
     """
     Mock for the drs3 /objects/{file_id} call
     """

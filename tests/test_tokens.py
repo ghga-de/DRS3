@@ -1,4 +1,4 @@
-# Copyright 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,7 @@ from jwcrypto.jws import InvalidJWSSignature
 from jwcrypto.jwt import JWTExpired
 
 from dcs.core.jwt_validation import get_validated_token
+from tests.fixtures.joint import trim_pem
 
 
 def test_validation_happy():
@@ -49,26 +50,19 @@ def test_validation_sad():
     """Test for expected error scenarios in decoding/validation path"""
 
     jwk = jwt_helpers.generate_jwk()
+
     claims = {"name": "Don Joe", "role": "user"}
     signed_token = jwt_helpers.sign_and_serialize_token(
         claims=claims, key=jwk, valid_seconds=30
     )
     # unwrap pubkey as str from pem
     pem = jwk.export_to_pem()
-    pubkey = (
-        pem.strip(b"-----BEGIN PUBLIC KEY-----\n")
-        .strip(b"\n-----END PUBLIC KEY-----\n")
-        .decode("utf-8")
-    )
+    pubkey = trim_pem(pem)
 
     # test validation failure with wrong key
     jwk = jwt_helpers.generate_jwk()
     pem = jwk.export_to_pem()
-    wrong_pubkey = (
-        pem.strip(b"-----BEGIN PUBLIC KEY-----\n")
-        .strip(b"\n-----END PUBLIC KEY-----\n")
-        .decode("utf-8")
-    )
+    wrong_pubkey = trim_pem(pem)
     with pytest.raises(InvalidJWSSignature):
         get_validated_token(token=signed_token, signing_pubkey=wrong_pubkey)
 
@@ -88,16 +82,13 @@ def test_validation_sad():
 
     jwk = jwt_helpers.generate_jwk()
     claims = {"name": "Don Joe", "role": "user"}
+    # default leeway is 60 seconds
     signed_token = jwt_helpers.sign_and_serialize_token(
         claims=claims, key=jwk, valid_seconds=-60
     )
 
     # unwrap pubkey as str from pem
     pem = jwk.export_to_pem()
-    pubkey = (
-        pem.strip(b"-----BEGIN PUBLIC KEY-----\n")
-        .strip(b"\n-----END PUBLIC KEY-----\n")
-        .decode("utf-8")
-    )
+    pubkey = trim_pem(pem)
     with pytest.raises(JWTExpired):
         get_validated_token(token=signed_token, signing_pubkey=pubkey)

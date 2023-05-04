@@ -16,12 +16,11 @@
 Module containing the main FastAPI router and all route functions.
 """
 
-from typing import Annotated
-
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Header, status
+from fastapi import APIRouter, Depends, status
 
 from dcs.adapters.inbound.fastapi_ import (
+    http_authorization,
     http_exceptions,
     http_response_models,
     http_responses,
@@ -107,15 +106,14 @@ async def health():
 @inject
 async def get_drs_object(
     object_id: str,
-    authorization: Annotated[str, Header()],
+    work_order_token: str = http_authorization.require_work_order_token,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
     Get info about a ``DrsObject``.
     """
-
     try:
-        data_repository.get_validated_token_data(token=authorization)
+        data_repository.get_validated_token_data(token=work_order_token)
     except data_repository.SignatureError as signature_error:
         raise http_exceptions.HttpTokenSignatureError() from signature_error
     except data_repository.TokenExpiredError as expired_error:
@@ -156,7 +154,7 @@ async def get_drs_object(
 @inject
 async def get_envelope(
     object_id: str,
-    authorization: Annotated[str, Header()],
+    work_order_token: str = http_authorization.require_work_order_token,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
@@ -165,7 +163,7 @@ async def get_envelope(
     """
 
     try:
-        decoded_token = data_repository.get_validated_token_data(token=authorization)
+        decoded_token = data_repository.get_validated_token_data(token=work_order_token)
     except data_repository.SignatureError as signature_error:
         raise http_exceptions.HttpTokenSignatureError() from signature_error
     except data_repository.TokenExpiredError as expired_error:

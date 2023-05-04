@@ -47,6 +47,20 @@ from dcs.main import get_configured_container, get_rest_api
 from tests.fixtures.config import get_config
 from tests.fixtures.mock_api.testcontainer import MockAPIContainer
 
+PRIVATE_KEY_PEM = (
+    b"-----BEGIN PRIVATE KEY-----\n"
+    + b"MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgv7oyUcBy8r1/5Gxx\n"
+    + b"hMnFKt0x0PoN/PdragjhHS1o/1ahRANCAATOan4A9jOk6VFgnR52Cc+IQlOxoBjB\n"
+    + b"cJCUy9X99mm0hBSYZfXwCChNmXNE3AdO2PXQtQc91ZRa65jcwEle7lug\n"
+    + b"-----END PRIVATE KEY-----\n"
+)
+PUBLIC_KEY_PEM = (
+    b"-----BEGIN PUBLIC KEY-----\n"
+    + b"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEzmp+APYzpOlRYJ0edgnPiEJTsaAY\n"
+    + b"wXCQlMvV/fZptIQUmGX18AgoTZlzRNwHTtj10LUHPdWUWuuY3MBJXu5boA==\n"
+    + b"-----END PUBLIC KEY-----\n"
+)
+
 EXAMPLE_FILE = models.DrsObject(
     file_id="examplefile001",
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
@@ -61,6 +75,15 @@ def get_free_port() -> int:
     sock = socket.socket()
     sock.bind(("", 0))
     return int(sock.getsockname()[1])
+
+
+def trim_pem(pem: bytes) -> str:
+    """Reduce pem to just the key"""
+    return (
+        pem.strip(b"-----BEGIN PUBLIC KEY-----\n")
+        .strip(b"\n-----END PUBLIC KEY-----\n")
+        .decode("utf-8")
+    )
 
 
 class EKSSBaseInjector(BaseSettings):
