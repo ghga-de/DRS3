@@ -14,10 +14,10 @@
 # limitations under the License.
 """TODO"""
 
+__all__ = ["require_work_order_token"]
+
 from fastapi import Depends, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
-__all__ = ["require_work_order_token"]
 
 
 async def require_access_token(

@@ -23,18 +23,18 @@ from jwcrypto import jwk, jwt
 def get_validated_token(token: str, signing_pubkey: str) -> dict[str, str]:
     """Validate token and return decoded information as dict"""
     # create JWK from signing public key
-    wrapped_pem = wrap_in_pem(signing_pubkey)
-    pem_bytes = bytes(wrapped_pem, encoding="utf-8")
-    key = jwk.JWK.from_pem(data=pem_bytes)
+    pem = wrap_in_pem(signing_pubkey)
+    key = jwk.JWK.from_pem(data=pem)
 
     decoded_token = jwt.JWT(jwt=token, key=key, expected_type="JWS")
     return json.loads(decoded_token.claims)
 
 
-def wrap_in_pem(key: Union[bytes, str]) -> str:
+def wrap_in_pem(key: Union[bytes, str]) -> bytes:
     """Add pem conformant parts for parsing with jwcrypto"""
 
     if isinstance(key, bytes):
         key = key.decode("utf-8")
 
-    return f"-----BEGIN PUBLIC KEY-----\n{key}\n-----END PUBLIC KEY-----\n"
+    pem = f"-----BEGIN PUBLIC KEY-----\n{key}\n-----END PUBLIC KEY-----\n"
+    return bytes(pem, encoding="utf-8")

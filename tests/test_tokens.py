@@ -17,29 +17,17 @@
 import os
 
 import pytest
-from ghga_service_commons.utils import jwt_helpers
 from jwcrypto.jws import InvalidJWSSignature
 from jwcrypto.jwt import JWTExpired
 
 from dcs.core.jwt_validation import get_validated_token
-from tests.fixtures.joint import trim_pem
+from tests.fixtures.joint import get_work_order_token
 
 
 def test_validation_happy():
     """Test decoding/validation path"""
-    jwk = jwt_helpers.generate_jwk()
-    claims = {"name": "John Doe", "role": "admin"}
-    signed_token = jwt_helpers.sign_and_serialize_token(
-        claims=claims, key=jwk, valid_seconds=30
-    )
 
-    # unwrap pubkey as str from pem
-    pem = jwk.export_to_pem()
-    pubkey = (
-        pem.strip(b"-----BEGIN PUBLIC KEY-----\n")
-        .strip(b"\n-----END PUBLIC KEY-----\n")
-        .decode("utf-8")
-    )
+    signed_token, pubkey = get_work_order_token()
 
     decoded = get_validated_token(token=signed_token, signing_pubkey=pubkey)
     assert decoded["name"] and decoded["name"] == "John Doe"
@@ -49,20 +37,10 @@ def test_validation_happy():
 def test_validation_sad():
     """Test for expected error scenarios in decoding/validation path"""
 
-    jwk = jwt_helpers.generate_jwk()
-
-    claims = {"name": "Don Joe", "role": "user"}
-    signed_token = jwt_helpers.sign_and_serialize_token(
-        claims=claims, key=jwk, valid_seconds=30
-    )
-    # unwrap pubkey as str from pem
-    pem = jwk.export_to_pem()
-    pubkey = trim_pem(pem)
+    signed_token, pubkey = get_work_order_token()
+    _, wrong_pubkey = get_work_order_token()
 
     # test validation failure with wrong key
-    jwk = jwt_helpers.generate_jwk()
-    pem = jwk.export_to_pem()
-    wrong_pubkey = trim_pem(pem)
     with pytest.raises(InvalidJWSSignature):
         get_validated_token(token=signed_token, signing_pubkey=wrong_pubkey)
 
@@ -80,15 +58,6 @@ def test_validation_sad():
     with pytest.raises(ValueError, match="Token format unrecognized"):
         get_validated_token(token=os.urandom(32).hex(), signing_pubkey=pubkey)
 
-    jwk = jwt_helpers.generate_jwk()
-    claims = {"name": "Don Joe", "role": "user"}
-    # default leeway is 60 seconds
-    signed_token = jwt_helpers.sign_and_serialize_token(
-        claims=claims, key=jwk, valid_seconds=-60
-    )
-
-    # unwrap pubkey as str from pem
-    pem = jwk.export_to_pem()
-    pubkey = trim_pem(pem)
+    signed_token, pubkey = get_work_order_token(valid_seconds=-60)
     with pytest.raises(JWTExpired):
         get_validated_token(token=signed_token, signing_pubkey=pubkey)

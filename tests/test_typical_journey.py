@@ -32,6 +32,7 @@ from tests.fixtures.joint import *  # noqa: F403
 
 @pytest.mark.asyncio
 async def test_happy(
+    monkeypatch,
     populated_fixture: PopulatedFixture,  # noqa: F405,F811
     file_fixture: FileObject,  # noqa: F811
 ):
@@ -39,6 +40,16 @@ async def test_happy(
     drs_id = populated_fixture.drs_id
     example_file = populated_fixture.example_file
     joint_fixture = populated_fixture.joint_fixture
+
+    # simplify testing by using one longer lived work order token
+    work_order_token, pubkey = get_work_order_token(valid_seconds=120)  # noqa: F405
+
+    # modify default headers and patch signing pubkey
+    joint_fixture.rest_client.headers = {"Authorization": f"Bearer {work_order_token}"}
+    monkeypatch.setattr(
+        "dcs.core.data_repository.DataRepository._get_signing_pubkey",
+        lambda self: pubkey,
+    )
 
     # request access to the newly registered file:
     # (An check that an event is published indicating that the file is not in

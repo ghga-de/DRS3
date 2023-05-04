@@ -125,6 +125,10 @@ class DataRepository(DataRepositoryPort):
             access_url=access_url,
         )
 
+    def _get_signing_pubkey(self):
+        """Factor out to be patchable in tests"""
+        return self._config.wps_signing_pubkey
+
     async def access_drs_object(self, *, drs_id: str) -> models.DrsObjectResponseModel:
         """
         Serve the specified DRS object with access information.
@@ -166,7 +170,7 @@ class DataRepository(DataRepositoryPort):
 
     def get_validated_token_data(self, *, token: str) -> dict[str, str]:
         """Decode and validate work order token, return token data"""
-        pubkey = self._config.wps_signing_pubkey
+        pubkey = self._get_signing_pubkey()
         try:
             decoded_token = get_validated_token(token=token, signing_pubkey=pubkey)
         except InvalidJWSSignature as error:

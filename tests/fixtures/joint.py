@@ -23,6 +23,7 @@ __all__ = [
     "kafka_fixture",
     "populated_fixture",
     "PopulatedFixture",
+    "get_work_order_token",
 ]
 
 import json
@@ -34,6 +35,7 @@ from typing import AsyncGenerator
 import httpx
 import pytest_asyncio
 from ghga_event_schemas import pydantic_ as event_schemas
+from ghga_service_commons.utils import jwt_helpers
 from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture  # F401
 from hexkit.providers.mongodb.testutils import mongodb_fixture
@@ -47,20 +49,6 @@ from dcs.main import get_configured_container, get_rest_api
 from tests.fixtures.config import get_config
 from tests.fixtures.mock_api.testcontainer import MockAPIContainer
 
-PRIVATE_KEY_PEM = (
-    b"-----BEGIN PRIVATE KEY-----\n"
-    + b"MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgv7oyUcBy8r1/5Gxx\n"
-    + b"hMnFKt0x0PoN/PdragjhHS1o/1ahRANCAATOan4A9jOk6VFgnR52Cc+IQlOxoBjB\n"
-    + b"cJCUy9X99mm0hBSYZfXwCChNmXNE3AdO2PXQtQc91ZRa65jcwEle7lug\n"
-    + b"-----END PRIVATE KEY-----\n"
-)
-PUBLIC_KEY_PEM = (
-    b"-----BEGIN PUBLIC KEY-----\n"
-    + b"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEzmp+APYzpOlRYJ0edgnPiEJTsaAY\n"
-    + b"wXCQlMvV/fZptIQUmGX18AgoTZlzRNwHTtj10LUHPdWUWuuY3MBJXu5boA==\n"
-    + b"-----END PUBLIC KEY-----\n"
-)
-
 EXAMPLE_FILE = models.DrsObject(
     file_id="examplefile001",
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
@@ -69,12 +57,27 @@ EXAMPLE_FILE = models.DrsObject(
     decryption_secret_id="some-secret",
 )
 
+SignedToken = str
+PubKey = str
+
 
 def get_free_port() -> int:
     """Finds and returns a free port on localhost."""
     sock = socket.socket()
     sock.bind(("", 0))
     return int(sock.getsockname()[1])
+
+
+def get_work_order_token(valid_seconds: int = 30) -> tuple[SignedToken, PubKey]:
+    """Generate work order token for testing"""
+    jwk = jwt_helpers.generate_jwk()
+
+    claims = {"name": "John Doe", "role": "admin", "user_public_crypt4gh_key": ""}
+    signed_token = jwt_helpers.sign_and_serialize_token(
+        claims=claims, key=jwk, valid_seconds=valid_seconds
+    )
+    signing_pubkey = trim_pem(jwk.export_to_pem())
+    return signed_token, signing_pubkey
 
 
 def trim_pem(pem: bytes) -> str:
