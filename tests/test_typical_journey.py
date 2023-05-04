@@ -45,7 +45,8 @@ async def test_happy(
     work_order_token, pubkey = get_work_order_token(valid_seconds=120)  # noqa: F405
 
     # modify default headers and patch signing pubkey
-    joint_fixture.rest_client.headers = {"Authorization": f"Bearer {work_order_token}"}
+    # mute mypy false positive, dict[str, str] should be compatible with Mapping[str, str]
+    joint_fixture.rest_client.headers = {"Authorization": f"Bearer {work_order_token}"}  # type: ignore
     monkeypatch.setattr(
         "dcs.core.data_repository.DataRepository._get_signing_pubkey",
         lambda self: pubkey,
