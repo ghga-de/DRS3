@@ -41,3 +41,13 @@ class EnvelopeEndpointErrorModel(BaseModel):
         ExternalAPIErrorModel,
         http_exceptions.HttpEnvelopeNotFoundError.get_body_model(),
     ] = Field(..., discriminator="exception_id")
+
+
+class TokenAuthenticationErrorModel(BaseModel):
+    """Response model for 403 responses due to issues with work order token processing"""
+
+    __root__: Union[  # type: ignore
+        http_exceptions.HttpTokenExpiredError.get_body_model(),
+        http_exceptions.HttpTokenMalformedError.get_body_model(),
+        http_exceptions.HttpTokenSignatureError.get_body_model(),
+    ] = Field(..., discriminator="exception_id")

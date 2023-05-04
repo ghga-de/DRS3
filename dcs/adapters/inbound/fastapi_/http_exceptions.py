@@ -16,6 +16,7 @@
 
 """A collection of http exceptions."""
 
+
 from httpyexpect.server import HttpCustomExceptionBase
 from pydantic import BaseModel
 
@@ -72,6 +73,7 @@ class HttpTokenExpiredError(HttpCustomExceptionBase):
 
     def __init__(self, *, status_code: int = 403):
         """Construct message and init the exception."""
+
         super().__init__(
             status_code=status_code,
             description="The work order token is expired.",

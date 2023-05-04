@@ -200,6 +200,107 @@ components:
       - object_id
       title: HttpObjectNotFoundErrorData
       type: object
+    HttpTokenExpiredError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpTokenExpiredErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - tokenExpiredError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpTokenExpiredError
+      type: object
+    HttpTokenExpiredErrorData:
+      description: 'An empty model used as default for describing exception data.
+
+        Please overwrite this to define your own data model.'
+      properties: {}
+      title: HttpTokenExpiredErrorData
+      type: object
+    HttpTokenMalformedError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpTokenMalformedErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - tokenMalformedError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpTokenMalformedError
+      type: object
+    HttpTokenMalformedErrorData:
+      description: 'An empty model used as default for describing exception data.
+
+        Please overwrite this to define your own data model.'
+      properties: {}
+      title: HttpTokenMalformedErrorData
+      type: object
+    HttpTokenSignatureError:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpTokenSignatureErrorData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - tokenSignatureError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpTokenSignatureError
+      type: object
+    HttpTokenSignatureErrorData:
+      description: 'An empty model used as default for describing exception data.
+
+        Please overwrite this to define your own data model.'
+      properties: {}
+      title: HttpTokenSignatureErrorData
+      type: object
+    TokenAuthenticationErrorModel:
+      description: Response model for 403 responses due to issues with work order
+        token processing
+      discriminator:
+        mapping:
+          tokenExpiredError: '#/components/schemas/HttpTokenExpiredError'
+          tokenMalformedError: '#/components/schemas/HttpTokenMalformedError'
+          tokenSignatureError: '#/components/schemas/HttpTokenSignatureError'
+        propertyName: exception_id
+      oneOf:
+      - $ref: '#/components/schemas/HttpTokenExpiredError'
+      - $ref: '#/components/schemas/HttpTokenMalformedError'
+      - $ref: '#/components/schemas/HttpTokenSignatureError'
+      title: TokenAuthenticationErrorModel
     ValidationError:
       properties:
         loc:
@@ -274,6 +375,20 @@ paths:
           description: The operation is delayed and will continue asynchronously.
             The client should retry this same request after the delay specified by
             Retry-After header.
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenAuthenticationErrorModel'
+          description: 'The request could not be processed due to issues with the
+            work order tokenExceptions by ID:
+
+            - tokenExpiredError: The provided token is no longer valid
+
+            - tokenMalformedError: The token does not conform to the expected format
+
+            - tokenSignatureError: Either the public key provided for validation is
+            wrong or the token has been tampered with'
         '404':
           content:
             application/json:

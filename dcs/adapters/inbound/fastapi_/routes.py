@@ -63,6 +63,17 @@ RESPONSES = {
         ),
         "model": http_response_models.DeliveryDelayedModel,
     },
+    "tokenAuthenticationError": {
+        "description": (
+            "The request could not be processed due to issues with the work order token"
+            + "Exceptions by ID:"
+            + "\n- tokenExpiredError: The provided token is no longer valid"
+            + "\n- tokenMalformedError: The token does not conform to the expected format"
+            + "\n- tokenSignatureError: Either the public key provided for validation "
+            + "is wrong or the token has been tampered with"
+        ),
+        "model": http_response_models.TokenAuthenticationErrorModel,
+    },
 }
 
 
@@ -89,6 +100,7 @@ async def health():
     response_description="The DrsObject was found successfully.",
     responses={
         status.HTTP_202_ACCEPTED: RESPONSES["objectNotInOutbox"],
+        status.HTTP_403_FORBIDDEN: RESPONSES["tokenAuthenticationError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["noSuchObject"],
     },
 )
@@ -136,6 +148,7 @@ async def get_drs_object(
     response_model=http_response_models.EnvelopeResponseModel,
     response_description="Successfully delivered envelope.",
     responses={
+        status.HTTP_403_FORBIDDEN: RESPONSES["tokenAuthenticationError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["entryNotFoundError"],
         status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["externalAPIError"],
     },
