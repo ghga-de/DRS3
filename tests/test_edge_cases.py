@@ -35,9 +35,7 @@ async def test_get_health(joint_fixture: JointFixture):  # noqa: F811, F405
 
 
 @pytest.mark.asyncio
-async def test_access_non_existing(
-    monkeypatch, joint_fixture: JointFixture  # noqa F811
-):
+async def test_access_non_existing(joint_fixture: JointFixture):  # noqa F811
     """Checks that requesting access to a non-existing DRS object fails with the
     expected exception."""
 
@@ -55,14 +53,9 @@ async def test_access_non_existing(
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    with monkeypatch.context() as patch:
-        patch.setattr(
-            "dcs.core.data_repository.DataRepository._get_signing_pubkey",
-            lambda self: pubkey,
-        )
-        # test with correct authorization header but wrong object_id
-        response = await joint_fixture.rest_client.get(
-            "/objects/my-non-existing-id",
-            headers={"Authorization": f"Bearer {work_order_token}"},
-        )
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+    # test with correct authorization header but wrong object_id
+    response = await joint_fixture.rest_client.get(
+        "/objects/my-non-existing-id",
+        headers={"Authorization": f"Bearer {work_order_token}"},
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND

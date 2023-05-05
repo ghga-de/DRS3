@@ -16,15 +16,28 @@
 
 __all__ = ["require_work_order_token"]
 
+
+from dependency_injector.wiring import Provide, inject
 from fastapi import Depends, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from ghga_service_commons.auth.context import AuthContextProtocol
+from ghga_service_commons.auth.policies import require_auth_context_using_credentials
+
+from dcs.container import Container
+from dcs.core.auth_policies import WorkOrderContext
 
 
+@inject
 async def require_access_token(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True)),
+    auth_provider: AuthContextProtocol[WorkOrderContext] = Depends(
+        Provide[Container.auth_provider]
+    ),
 ) -> str:
     """Require an access token using FastAPI."""
-    return credentials.credentials
+    return require_auth_context_using_credentials(
+        credentials=credentials, auth_provider=auth_provider
+    )
 
 
 require_work_order_token = Security(require_access_token)

@@ -16,9 +16,6 @@
 Module containing the main FastAPI router and all route functions.
 """
 
-import base64
-import binascii
-
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
@@ -29,6 +26,7 @@ from dcs.adapters.inbound.fastapi_ import (
     http_responses,
 )
 from dcs.container import Container
+from dcs.core.auth_policies import WorkOrderContext
 from dcs.core.models import DrsObjectResponseModel
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 
@@ -67,23 +65,12 @@ RESPONSES = {
     },
     "tokenAuthenticationError": {
         "description": (
-            "The request could not be processed due to issues with the work order token"
-            + "Exceptions by ID:"
-            + "\n- tokenExpiredError: The provided token is no longer valid"
-            + "\n- tokenMalformedError: The token does not conform to the expected format"
-            + "\n- tokenSignatureError: Either the public key provided for validation "
-            + "is wrong or the token has been tampered with"
+            "Work order token could not be validated. Either the wrong signing public key "
+            + " has been provided or the token is malformed or has been tampered with."
+            + "\nExceptions by ID:"
+            + "\n- tokenAuthenticationError: Failed to validate work oder token"
         ),
-        "model": http_response_models.TokenAuthenticationErrorModel,
-    },
-    "userPubkeyMalformedError": {
-        "description": (
-            "The request could not be processed as the user public key included in the "
-            + "work order token is malformed"
-            + "Exceptions by ID:"
-            + "\n- userPubkeyMalformedError: User pubkey is empty/missing or cannot be decoded"
-        ),
-        "model": http_exceptions.HttpUserPubkeyMalformed.get_body_model(),
+        "model": http_exceptions.HttpTokenAuthenticationError.get_body_model(),
     },
 }
 
@@ -118,20 +105,16 @@ async def health():
 @inject
 async def get_drs_object(
     object_id: str,
-    work_order_token: str = http_authorization.require_work_order_token,
+    work_order_token: WorkOrderContext = http_authorization.require_work_order_token,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
     Get info about a ``DrsObject``.
     """
-    try:
-        data_repository.get_validated_token_data(token=work_order_token)
-    except data_repository.SignatureError as signature_error:
-        raise http_exceptions.HttpTokenSignatureError() from signature_error
-    except data_repository.TokenExpiredError as expired_error:
-        raise http_exceptions.HttpTokenExpiredError() from expired_error
-    except data_repository.TokenMalformedError as token_error:
-        raise http_exceptions.HttpTokenMalformedError() from token_error
+
+    if not object_id == work_order_token.file_id:
+        # TODO: raise mismatch error
+        ...
 
     try:
         drs_object = await data_repository.access_drs_object(drs_id=object_id)
@@ -158,7 +141,6 @@ async def get_drs_object(
     response_model=http_response_models.EnvelopeResponseModel,
     response_description="Successfully delivered envelope.",
     responses={
-        status.HTTP_400_BAD_REQUEST: RESPONSES["userPubkeyMalformedError"],
         status.HTTP_403_FORBIDDEN: RESPONSES["tokenAuthenticationError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["entryNotFoundError"],
         status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["externalAPIError"],
@@ -167,7 +149,7 @@ async def get_drs_object(
 @inject
 async def get_envelope(  # noqa: C901
     object_id: str,
-    work_order_token: str = http_authorization.require_work_order_token,
+    work_order_token: WorkOrderContext = http_authorization.require_work_order_token,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
@@ -175,24 +157,10 @@ async def get_envelope(  # noqa: C901
     URL safe base64 encoded public key
     """
 
-    try:
-        decoded_token = data_repository.get_validated_token_data(token=work_order_token)
-    except data_repository.SignatureError as signature_error:
-        raise http_exceptions.HttpTokenSignatureError() from signature_error
-    except data_repository.TokenExpiredError as expired_error:
-        raise http_exceptions.HttpTokenExpiredError() from expired_error
-    except data_repository.TokenMalformedError as token_error:
-        raise http_exceptions.HttpTokenMalformedError() from token_error
-
-    public_key = decoded_token.get("user_public_crypt4gh_key", "")
-
-    if not public_key:
-        raise http_exceptions.HttpUserPubkeyMalformed()
-
-    try:
-        base64.b64decode(public_key)
-    except binascii.Error as error:
-        raise http_exceptions.HttpUserPubkeyMalformed() from error
+    if not object_id == work_order_token.file_id:
+        # TODO: raise mismatch error
+        ...
+    public_key = work_order_token.user_public_crypt4gh_key
 
     try:
         envelope = await data_repository.serve_envelope(

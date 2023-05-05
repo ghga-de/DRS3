@@ -80,17 +80,8 @@ def get_work_order_token(valid_seconds: int = 30) -> tuple[SignedToken, PubKey]:
     signed_token = jwt_helpers.sign_and_serialize_token(
         claims=claims, key=jwk, valid_seconds=valid_seconds
     )
-    signing_pubkey = trim_pem(jwk.export_to_pem())
+    signing_pubkey = jwk.export_public()
     return signed_token, signing_pubkey
-
-
-def trim_pem(pem: bytes) -> str:
-    """Reduce pem to just the key"""
-    return (
-        pem.strip(b"-----BEGIN PUBLIC KEY-----\n")
-        .strip(b"\n-----END PUBLIC KEY-----\n")
-        .decode("utf-8")
-    )
 
 
 class EKSSBaseInjector(BaseSettings):
@@ -132,7 +123,12 @@ async def joint_fixture(
         )
         # create a DI container instance:translators
         async with get_configured_container(config=config) as container:
-            container.wire(modules=["dcs.adapters.inbound.fastapi_.routes"])
+            container.wire(
+                modules=[
+                    "dcs.adapters.inbound.fastapi_.routes",
+                    "dcs.adapters.inbound.fastapi_.http_authorization",
+                ]
+            )
 
             # create storage entities:
             await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])

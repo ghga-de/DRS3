@@ -32,7 +32,6 @@ from tests.fixtures.joint import *  # noqa: F403
 
 @pytest.mark.asyncio
 async def test_happy(
-    monkeypatch,
     populated_fixture: PopulatedFixture,  # noqa: F405,F811
     file_fixture: FileObject,  # noqa: F811
 ):
@@ -47,10 +46,6 @@ async def test_happy(
     # modify default headers and patch signing pubkey
     # mute mypy false positive, dict[str, str] should be compatible with Mapping[str, str]
     joint_fixture.rest_client.headers = {"Authorization": f"Bearer {work_order_token}"}  # type: ignore
-    monkeypatch.setattr(
-        "dcs.core.data_repository.DataRepository._get_signing_pubkey",
-        lambda self: pubkey,
-    )
 
     # request access to the newly registered file:
     # (An check that an event is published indicating that the file is not in

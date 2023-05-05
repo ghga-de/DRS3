@@ -15,6 +15,7 @@
 
 """Module hosting the dependency injection container."""
 
+from ghga_service_commons.auth.jwt_auth import JWTAuthContextProvider
 from hexkit.inject import ContainerBase, get_configurator, get_constructor
 from hexkit.providers.akafka import KafkaEventPublisher, KafkaEventSubscriber
 from hexkit.providers.mongodb import MongoDbDaoFactory
@@ -24,6 +25,7 @@ from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
 from dcs.adapters.outbound.event_pub import EventPubTranslator
 from dcs.adapters.outbound.s3 import S3ObjectStorage
 from dcs.config import Config
+from dcs.core.auth_policies import WorkOrderContext
 from dcs.core.data_repository import DataRepository
 
 
@@ -32,6 +34,11 @@ class Container(ContainerBase):
 
     config = get_configurator(Config)
 
+    auth_provider = get_constructor(
+        JWTAuthContextProvider,
+        config=config,
+        context_class=WorkOrderContext,
+    )
     # outbound providers:
     dao_factory = get_constructor(MongoDbDaoFactory, config=config)
     event_pub_provider = get_constructor(KafkaEventPublisher, config=config)

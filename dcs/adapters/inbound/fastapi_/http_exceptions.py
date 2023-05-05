@@ -66,61 +66,16 @@ class HttpObjectNotFoundError(HttpCustomExceptionBase):
         )
 
 
-class HttpTokenExpiredError(HttpCustomExceptionBase):
-    """Raised when a work order token is expired"""
+class HttpTokenAuthenticationError(HttpCustomExceptionBase):
+    """Raised when a work order token cannot be validated"""
 
-    exception_id = "tokenExpiredError"
-
-    def __init__(self, *, status_code: int = 403):
-        """Construct message and init the exception."""
-
-        super().__init__(
-            status_code=status_code,
-            description="The work order token is expired.",
-            data={},
-        )
-
-
-class HttpTokenMalformedError(HttpCustomExceptionBase):
-    """Raised when a work order token does not conform to the expected form"""
-
-    exception_id = "tokenMalformedError"
+    exception_id = "tokenAuthenticationError"
 
     def __init__(self, *, status_code: int = 403):
         """Construct message and init the exception."""
+
         super().__init__(
             status_code=status_code,
-            description="The work order token is malformed.",
-            data={},
-        )
-
-
-class HttpTokenSignatureError(HttpCustomExceptionBase):
-    """Raised when a work order token signature or the provided signing public key
-    are invalid"""
-
-    exception_id = "tokenSignatureError"
-
-    def __init__(self, *, status_code: int = 403):
-        """Construct message and init the exception."""
-        super().__init__(
-            status_code=status_code,
-            description="The work order token signature could not be validated.",
-            data={},
-        )
-
-
-class HttpUserPubkeyMalformed(HttpCustomExceptionBase):
-    """
-    Raised when the user's pubkey in the work order token is missing or not a base64 encoded Crypt4GH key
-    """
-
-    exception_id = "userPubkeyMalformedError"
-
-    def __init__(self, *, status_code: int = 400):
-        """Construct message and init the exception."""
-        super().__init__(
-            status_code=status_code,
-            description="User pubkey from the work order token is malformed.",
+            description="The work order token could not be validated.",
             data={},
         )

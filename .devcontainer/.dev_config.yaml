@@ -36,4 +36,4 @@ files_to_register_type: file_registered
 unstaged_download_event_topic: file_downloads
 unstaged_download_event_type: unstaged_download_requested
 
-wps_signing_pubkey: dummy-key
+auth_key: '{"crv":"P-256","kty":"EC","x":"yBTtQdsuz8mav1MVYC6lk6MN9GJA30w6L2WOZywYZqE","y":"5HvxOSLXpdAGcnGl9OSe8j71OI7QAe_ZPubPdFDdGvQ"}'

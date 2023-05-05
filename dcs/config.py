@@ -16,6 +16,7 @@
 """Config Parameter Modeling and Parsing"""
 
 from ghga_service_commons.api import ApiConfigBase
+from ghga_service_commons.auth.ghga import AuthConfig
 from hexkit.config import config_from_yaml
 from hexkit.providers.akafka import KafkaConfig
 from hexkit.providers.mongodb import MongoDbConfig
@@ -30,6 +31,7 @@ from dcs.core.data_repository import DataRepositoryConfig
 @config_from_yaml(prefix="dcs")
 class Config(
     ApiConfigBase,
+    AuthConfig,
     S3Config,
     DataRepositoryConfig,
     MongoDbConfig,
