@@ -75,7 +75,7 @@ class DataRepositoryPort(ABC):
             super().__init__(message)
 
     class TokenMalformedError(RuntimeError):
-        """Raised when a work order token is expired"""
+        """Raised when a work order token is malformed"""
 
         def __init__(self):
             message = "The provided work order token is malformed."
