@@ -70,8 +70,10 @@ async def ready():
     return Response(None, status_code=status.HTTP_204_NO_CONTENT)
 
 
-@app.get("/secrets/{secret_id}/envelopes", summary="ekss_api_call_mock")
-async def ekss_mock(secret_id: str):
+@app.get(
+    "/secrets/{secret_id}/envelopes/{receiver_public_key}", summary="ekss_api_call_mock"
+)
+async def ekss_mock(secret_id: str, receiver_public_key: str):
     """
     Mock for the drs3 /objects/{file_id} call
     """

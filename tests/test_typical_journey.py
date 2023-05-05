@@ -113,13 +113,13 @@ async def test_happy(
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
     response = await joint_fixture.rest_client.get(
+        f"/objects/{drs_id}/envelopes", timeout=60
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+    response = await joint_fixture.rest_client.get(
         f"/objects/{drs_id}/envelopes",
         timeout=60,
         headers={"Authorization": "Bearer invalid"},
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
-
-    response = await joint_fixture.rest_client.get(
-        f"/objects/{drs_id}/envelopes", timeout=60
-    )
-    assert response.status_code == status.HTTP_200_OK
