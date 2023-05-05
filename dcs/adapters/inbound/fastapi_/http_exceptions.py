@@ -112,7 +112,7 @@ class HttpTokenSignatureError(HttpCustomExceptionBase):
 
 class HttpUserPubkeyMalformed(HttpCustomExceptionBase):
     """
-    Raised when the user pubkey from the work order token is empty/missing or cannot be decoded
+    Raised when the user's pubkey in the work order token is missing or not a base64 encoded Crypt4GH key
     """
 
     exception_id = "userPubkeyMalformedError"
