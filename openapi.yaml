@@ -287,6 +287,35 @@ components:
       properties: {}
       title: HttpTokenSignatureErrorData
       type: object
+    HttpUserPubkeyMalformed:
+      additionalProperties: false
+      description: A custom exception body model.
+      properties:
+        data:
+          $ref: '#/components/schemas/HttpUserPubkeyMalformedData'
+        description:
+          description: A human readable message to the client explaining the cause
+            of the exception.
+          title: Description
+          type: string
+        exception_id:
+          enum:
+          - userPubkeyMalformedError
+          title: Exception Id
+          type: string
+      required:
+      - data
+      - description
+      - exception_id
+      title: HttpUserPubkeyMalformed
+      type: object
+    HttpUserPubkeyMalformedData:
+      description: 'An empty model used as default for describing exception data.
+
+        Please overwrite this to define your own data model.'
+      properties: {}
+      title: HttpUserPubkeyMalformedData
+      type: object
     TokenAuthenticationErrorModel:
       description: Response model for 403 responses due to issues with work order
         token processing
@@ -428,6 +457,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/EnvelopeResponseModel'
           description: Successfully delivered envelope.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpUserPubkeyMalformed'
+          description: 'The request could not be processed as the user public key
+            included in the work order token is malformedExceptions by ID:
+
+            - userPubkeyMalformedError: User pubkey is empty/missing or cannot be
+            decoded'
         '403':
           content:
             application/json:
