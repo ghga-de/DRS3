@@ -44,7 +44,7 @@ from pydantic import BaseSettings
 
 from dcs.config import Config
 from dcs.container import Container
-from dcs.core import models
+from dcs.core import auth_policies, models
 from dcs.main import get_configured_container, get_rest_api
 from tests.fixtures.config import get_config
 from tests.fixtures.mock_api.testcontainer import MockAPIContainer
@@ -68,15 +68,28 @@ def get_free_port() -> int:
     return int(sock.getsockname()[1])
 
 
-def get_work_order_token(valid_seconds: int = 30) -> tuple[SignedToken, PubKey]:
+def get_work_order_token(
+    file_id: str,
+    user_pubkey: str,
+    valid_seconds: int = 30,
+) -> tuple[SignedToken, PubKey]:
     """Generate work order token for testing"""
+
+    # generate minimal test token
+    name = "John Doe"
+    wot = auth_policies.WorkOrderToken(
+        name=name,
+        type="download",
+        file_id=file_id,
+        user_id="007",
+        user_public_crypt4gh_key=user_pubkey,
+        full_user_name=name,
+        email="john.doe@test.com",
+    )
+    claims = wot.dict()
+
     jwk = jwt_helpers.generate_jwk()
 
-    claims = {
-        "name": "John Doe",
-        "role": "admin",
-        "user_public_crypt4gh_key": "valid_key",
-    }
     signed_token = jwt_helpers.sign_and_serialize_token(
         claims=claims, key=jwk, valid_seconds=valid_seconds
     )

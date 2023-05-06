@@ -14,18 +14,20 @@
 # limitations under the License.
 """Supported authentication policies for endpoints"""
 
-from typing import Literal, Union
+from typing import Literal
 
 from ghga_service_commons.auth.ghga import AuthContext
-from pydantic import EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
-class WorkOrderContext(AuthContext):
-    """Auth context for work order token"""
+class WorkOrderToken(BaseModel):
+    """Work order token model"""
 
-    type: Union[Literal["download"], Literal["upload"]] = Field(
-        ..., title="Type", help=""
+    # duplicate for AuthContext, need to clarify difference between full_username and this
+    name: str = Field(
+        ..., title="Name", description="The full name of the user", example="John Doe"
     )
+    type: Literal["download"] = Field(..., title="Type", help="Endpoint type")
     file_id: str = Field(
         ...,
         title="File ID",
@@ -41,3 +43,15 @@ class WorkOrderContext(AuthContext):
         help="The full name of the user (with academic title)",
     )
     email: EmailStr = Field(..., title="E-Mail", help="The email address of the user")
+
+
+class WorkOrderContext(AuthContext, WorkOrderToken):
+    """Auth context for work order token"""
+
+    def matches_type_and_file_id(self, *, file_id: str):
+        """Validate token target file id and endpoint type match expectations"""
+
+        if self.type != "download":
+            raise ValueError("Got token for wrong endpoint type.")
+        if self.file_id != file_id:
+            raise ValueError("Got token for wrong file_id.")

@@ -78,11 +78,6 @@ class DataRepositoryPort(ABC):
         ...
 
     @abstractmethod
-    def get_validated_token_data(self, *, token: str) -> dict[str, str]:
-        """Decode and validate work order token, return token data"""
-        ...
-
-    @abstractmethod
     async def register_new_file(self, *, file: models.DrsObject):
         """Register a file as a new DRS Object."""
         ...

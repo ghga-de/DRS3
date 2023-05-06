@@ -29,16 +29,19 @@ from dcs.core.auth_policies import WorkOrderContext
 from dcs.core.data_repository import DataRepository
 
 
+def auth_provider(config):
+    """Extracted provider constructor for better test override ergonomics"""
+    return get_constructor(
+        JWTAuthContextProvider, config=config, context_class=WorkOrderContext
+    )
+
+
 class Container(ContainerBase):
     """DI Container"""
 
     config = get_configurator(Config)
 
-    auth_provider = get_constructor(
-        JWTAuthContextProvider,
-        config=config,
-        context_class=WorkOrderContext,
-    )
+    auth_provider = auth_provider(config=config)
     # outbound providers:
     dao_factory = get_constructor(MongoDbDaoFactory, config=config)
     event_pub_provider = get_constructor(KafkaEventPublisher, config=config)

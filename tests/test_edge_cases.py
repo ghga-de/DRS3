@@ -17,10 +17,13 @@
 
 import pytest
 from fastapi import status
+from ghga_service_commons.auth.ghga import AuthConfig
+from ghga_service_commons.utils.crypt import encode_key, generate_key_pair
 from hexkit.providers.mongodb.testutils import mongodb_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
 
+from dcs.container import auth_provider
 from tests.fixtures.joint import *  # noqa: F403
 
 
@@ -39,23 +42,32 @@ async def test_access_non_existing(joint_fixture: JointFixture):  # noqa F811
     """Checks that requesting access to a non-existing DRS object fails with the
     expected exception."""
 
+    file_id = "my-non-existing-id"
+    user_pubkey = encode_key(generate_key_pair().public)
+
     # request access to non existing DRS object:
-    work_order_token, pubkey = get_work_order_token()  # noqa: F405
+    work_order_token, pubkey = get_work_order_token(  # noqa: F405
+        file_id=file_id, user_pubkey=user_pubkey
+    )
 
     # test with missing authorization header
-    response = await joint_fixture.rest_client.get("/objects/my-non-existing-id")
+    response = await joint_fixture.rest_client.get(f"/objects/{file_id}")
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
     # test with authorization header but wrong pubkey
     response = await joint_fixture.rest_client.get(
-        "/objects/my-non-existing-id",
+        f"/objects/{file_id}",
         headers={"Authorization": f"Bearer {work_order_token}"},
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    # test with correct authorization header but wrong object_id
-    response = await joint_fixture.rest_client.get(
-        "/objects/my-non-existing-id",
-        headers={"Authorization": f"Bearer {work_order_token}"},
-    )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    # update pubkey config option on live object
+    auth_provider_override = auth_provider(config=AuthConfig(auth_key=pubkey))
+
+    with joint_fixture.container.auth_provider.override(auth_provider_override):
+        # test with correct authorization header but wrong object_id
+        response = await joint_fixture.rest_client.get(
+            "/objects/my-non-existing-id",
+            headers={"Authorization": f"Bearer {work_order_token}"},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND

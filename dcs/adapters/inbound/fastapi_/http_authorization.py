@@ -28,7 +28,7 @@ from dcs.core.auth_policies import WorkOrderContext
 
 
 @inject
-async def require_access_token(
+def require_access_token(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True)),
     auth_provider: AuthContextProtocol[WorkOrderContext] = Depends(
         Provide[Container.auth_provider]

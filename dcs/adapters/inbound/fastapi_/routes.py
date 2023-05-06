@@ -105,16 +105,15 @@ async def health():
 @inject
 async def get_drs_object(
     object_id: str,
-    work_order_token: WorkOrderContext = http_authorization.require_work_order_token,
+    auth_context: WorkOrderContext = http_authorization.require_work_order_token,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
     Get info about a ``DrsObject``.
     """
 
-    if not object_id == work_order_token.file_id:
-        # TODO: raise mismatch error
-        ...
+    work_order_token: WorkOrderContext = await auth_context
+    work_order_token.matches_type_and_file_id(file_id=object_id)
 
     try:
         drs_object = await data_repository.access_drs_object(drs_id=object_id)
@@ -149,7 +148,7 @@ async def get_drs_object(
 @inject
 async def get_envelope(  # noqa: C901
     object_id: str,
-    work_order_token: WorkOrderContext = http_authorization.require_work_order_token,
+    auth_context: WorkOrderContext = http_authorization.require_work_order_token,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
@@ -157,9 +156,9 @@ async def get_envelope(  # noqa: C901
     URL safe base64 encoded public key
     """
 
-    if not object_id == work_order_token.file_id:
-        # TODO: raise mismatch error
-        ...
+    work_order_token: WorkOrderContext = await auth_context
+    work_order_token.matches_type_and_file_id(file_id=object_id)
+
     public_key = work_order_token.user_public_crypt4gh_key
 
     try:

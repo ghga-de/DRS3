@@ -21,12 +21,15 @@ import pytest
 import requests
 from fastapi import status
 from ghga_event_schemas import pydantic_ as event_schemas
+from ghga_service_commons.utils.crypt import encode_key, generate_key_pair
 from hexkit.providers.akafka.testutils import ExpectedEvent
 from hexkit.providers.mongodb.testutils import mongodb_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import FileObject
 
+from dcs.config import AuthConfig
+from dcs.container import auth_provider
 from tests.fixtures.joint import *  # noqa: F403
 
 
@@ -39,13 +42,20 @@ async def test_happy(
     drs_id = populated_fixture.drs_id
     example_file = populated_fixture.example_file
     joint_fixture = populated_fixture.joint_fixture
+    user_pubkey = encode_key(generate_key_pair().public)
 
     # simplify testing by using one longer lived work order token
-    work_order_token, pubkey = get_work_order_token(valid_seconds=120)  # noqa: F405
+    work_order_token, pubkey = get_work_order_token(  # noqa: F405
+        file_id=drs_id,
+        user_pubkey=user_pubkey,
+        valid_seconds=120,
+    )
 
     # modify default headers and patch signing pubkey
     # mute mypy false positive, dict[str, str] should be compatible with Mapping[str, str]
     joint_fixture.rest_client.headers = {"Authorization": f"Bearer {work_order_token}"}  # type: ignore
+    auth_provider_override = auth_provider(config=AuthConfig(auth_key=pubkey))
+    joint_fixture.container.auth_provider.override(auth_provider_override)
 
     # request access to the newly registered file:
     # (An check that an event is published indicating that the file is not in
