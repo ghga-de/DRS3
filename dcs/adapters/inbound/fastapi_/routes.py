@@ -26,7 +26,7 @@ from dcs.adapters.inbound.fastapi_ import (
     http_responses,
 )
 from dcs.container import Container
-from dcs.core.auth_policies import WorkOrderContext
+from dcs.core.auth_policies import WorkOrderToken
 from dcs.core.models import DrsObjectResponseModel
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 
@@ -105,15 +105,18 @@ async def health():
 @inject
 async def get_drs_object(
     object_id: str,
-    auth_context: WorkOrderContext = http_authorization.require_work_order_token,
+    auth_context: WorkOrderToken = http_authorization.require_work_order_token,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
     Get info about a ``DrsObject``.
     """
 
-    work_order_token: WorkOrderContext = await auth_context
-    work_order_token.matches_type_and_file_id(file_id=object_id)
+    work_order_token: WorkOrderToken = await auth_context
+    try:
+        work_order_token.matches_type_and_file_id(file_id=object_id)
+    except ValueError as error:
+        raise http_exceptions.HttpTokenAuthenticationError(cause=str(error)) from error
 
     try:
         drs_object = await data_repository.access_drs_object(drs_id=object_id)
@@ -148,7 +151,7 @@ async def get_drs_object(
 @inject
 async def get_envelope(  # noqa: C901
     object_id: str,
-    auth_context: WorkOrderContext = http_authorization.require_work_order_token,
+    auth_context: WorkOrderToken = http_authorization.require_work_order_token,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
@@ -156,8 +159,11 @@ async def get_envelope(  # noqa: C901
     URL safe base64 encoded public key
     """
 
-    work_order_token: WorkOrderContext = await auth_context
-    work_order_token.matches_type_and_file_id(file_id=object_id)
+    work_order_token: WorkOrderToken = await auth_context
+    try:
+        work_order_token.matches_type_and_file_id(file_id=object_id)
+    except ValueError as error:
+        raise http_exceptions.HttpTokenAuthenticationError(cause=str(error)) from error
 
     public_key = work_order_token.user_public_crypt4gh_key
 

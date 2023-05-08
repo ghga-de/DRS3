@@ -25,14 +25,14 @@ from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
 from dcs.adapters.outbound.event_pub import EventPubTranslator
 from dcs.adapters.outbound.s3 import S3ObjectStorage
 from dcs.config import Config
-from dcs.core.auth_policies import WorkOrderContext
+from dcs.core.auth_policies import WorkOrderToken
 from dcs.core.data_repository import DataRepository
 
 
 def auth_provider(config):
     """Extracted provider constructor for better test override ergonomics"""
     return get_constructor(
-        JWTAuthContextProvider, config=config, context_class=WorkOrderContext
+        JWTAuthContextProvider, config=config, context_class=WorkOrderToken
     )
 
 

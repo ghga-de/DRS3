@@ -76,14 +76,12 @@ def get_work_order_token(
     """Generate work order token for testing"""
 
     # generate minimal test token
-    name = "John Doe"
     wot = auth_policies.WorkOrderToken(
-        name=name,
         type="download",
         file_id=file_id,
         user_id="007",
         user_public_crypt4gh_key=user_pubkey,
-        full_user_name=name,
+        full_user_name="John Doe",
         email="john.doe@test.com",
     )
     claims = wot.dict()

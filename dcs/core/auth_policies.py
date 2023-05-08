@@ -16,17 +16,12 @@
 
 from typing import Literal
 
-from ghga_service_commons.auth.ghga import AuthContext
 from pydantic import BaseModel, EmailStr, Field
 
 
 class WorkOrderToken(BaseModel):
     """Work order token model"""
 
-    # duplicate for AuthContext, need to clarify difference between full_username and this
-    name: str = Field(
-        ..., title="Name", description="The full name of the user", example="John Doe"
-    )
     type: Literal["download"] = Field(..., title="Type", help="Endpoint type")
     file_id: str = Field(
         ...,
@@ -43,10 +38,6 @@ class WorkOrderToken(BaseModel):
         help="The full name of the user (with academic title)",
     )
     email: EmailStr = Field(..., title="E-Mail", help="The email address of the user")
-
-
-class WorkOrderContext(AuthContext, WorkOrderToken):
-    """Auth context for work order token"""
 
     def matches_type_and_file_id(self, *, file_id: str):
         """Validate token target file id and endpoint type match expectations"""

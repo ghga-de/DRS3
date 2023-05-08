@@ -24,13 +24,13 @@ from ghga_service_commons.auth.context import AuthContextProtocol
 from ghga_service_commons.auth.policies import require_auth_context_using_credentials
 
 from dcs.container import Container
-from dcs.core.auth_policies import WorkOrderContext
+from dcs.core.auth_policies import WorkOrderToken
 
 
 @inject
 async def require_access_token(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True)),
-    auth_provider: AuthContextProtocol[WorkOrderContext] = Depends(
+    auth_provider: AuthContextProtocol[WorkOrderToken] = Depends(
         Provide[Container.auth_provider]
     ),
 ) -> str:

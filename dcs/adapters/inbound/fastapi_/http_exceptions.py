@@ -71,11 +71,11 @@ class HttpTokenAuthenticationError(HttpCustomExceptionBase):
 
     exception_id = "tokenAuthenticationError"
 
-    def __init__(self, *, status_code: int = 403):
+    def __init__(self, *, cause: str, status_code: int = 403):
         """Construct message and init the exception."""
 
         super().__init__(
             status_code=status_code,
             description="The work order token could not be validated.",
-            data={},
+            data={"cause": cause},
         )

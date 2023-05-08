@@ -28,7 +28,7 @@ from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import FileObject
 
-from dcs.config import AuthConfig
+from dcs.config import WorkOrderTokenConfig
 from dcs.container import auth_provider
 from tests.fixtures.joint import *  # noqa: F403
 
@@ -54,7 +54,7 @@ async def test_happy(
     # modify default headers and patch signing pubkey
     # mute mypy false positive, dict[str, str] should be compatible with Mapping[str, str]
     joint_fixture.rest_client.headers = {"Authorization": f"Bearer {work_order_token}"}  # type: ignore
-    auth_provider_override = auth_provider(config=AuthConfig(auth_key=pubkey))
+    auth_provider_override = auth_provider(config=WorkOrderTokenConfig(auth_key=pubkey))
     joint_fixture.container.auth_provider.override(auth_provider_override)
 
     # request access to the newly registered file:
@@ -115,7 +115,7 @@ async def test_happy(
     response = await joint_fixture.rest_client.get(
         "/objects/invalid_id/envelopes", timeout=60
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
     response = await joint_fixture.rest_client.get(
         f"/objects/{drs_id}/envelopes", timeout=60
