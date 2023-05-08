@@ -16,6 +16,8 @@
 Module containing the main FastAPI router and all route functions.
 """
 
+from typing import Awaitable
+
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
@@ -105,7 +107,9 @@ async def health():
 @inject
 async def get_drs_object(
     object_id: str,
-    auth_context: WorkOrderToken = http_authorization.require_work_order_token,
+    auth_context: Awaitable[
+        WorkOrderToken
+    ] = http_authorization.require_work_order_token,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
@@ -151,7 +155,9 @@ async def get_drs_object(
 @inject
 async def get_envelope(  # noqa: C901
     object_id: str,
-    auth_context: WorkOrderToken = http_authorization.require_work_order_token,
+    auth_context: Awaitable[
+        WorkOrderToken
+    ] = http_authorization.require_work_order_token,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
