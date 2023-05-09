@@ -14,7 +14,7 @@
 # limitations under the License.
 """Supported authentication policies for endpoints"""
 
-from typing import Literal
+from typing import Literal, Union
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -22,7 +22,9 @@ from pydantic import BaseModel, EmailStr, Field
 class WorkOrderToken(BaseModel):
     """Work order token model"""
 
-    type: Literal["download"] = Field(..., title="Type", help="Endpoint type")
+    type: Union[Literal["download"], Literal["upload"]] = Field(
+        ..., title="Type", help="Work type"
+    )
     file_id: str = Field(
         ...,
         title="File ID",
