@@ -57,6 +57,7 @@ async def test_access_non_existing(joint_fixture: JointFixture):  # noqa F811
     # test with authorization header but wrong pubkey
     response = await joint_fixture.rest_client.get(
         f"/objects/{file_id}",
+        timeout=5,
         headers={"Authorization": f"Bearer {work_order_token}"},
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -68,13 +69,14 @@ async def test_access_non_existing(joint_fixture: JointFixture):  # noqa F811
         # test with correct authorization header but wrong object_id
         response = await joint_fixture.rest_client.get(
             "/objects/my-non-existing-id",
+            timeout=5,
             headers={"Authorization": f"Bearer {work_order_token}"},
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
         response = await joint_fixture.rest_client.get(
             "/objects/my-non-existing-id/envelopes",
-            timeout=60,
+            timeout=5,
             headers={"Authorization": f"Bearer {work_order_token}"},
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND

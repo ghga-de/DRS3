@@ -72,7 +72,7 @@ async def test_happy(
         ],
         in_topic=joint_fixture.config.unstaged_download_event_topic,
     ):
-        response = await joint_fixture.rest_client.get(f"/objects/{drs_id}")
+        response = await joint_fixture.rest_client.get(f"/objects/{drs_id}", timeout=5)
     assert response.status_code == status.HTTP_202_ACCEPTED
     assert (
         int(response.headers["Retry-After"]) == joint_fixture.config.retry_access_after
@@ -108,23 +108,23 @@ async def test_happy(
 
     # download file bytes:
     presigned_url = drs_object_response.json()["access_methods"][0]["access_url"]["url"]
-    dowloaded_file = requests.get(presigned_url, timeout=2)
+    dowloaded_file = requests.get(presigned_url, timeout=5)
     dowloaded_file.raise_for_status()
     assert dowloaded_file.content == file_object.content
 
     response = await joint_fixture.rest_client.get(
-        "/objects/invalid_id/envelopes", timeout=60
+        "/objects/invalid_id/envelopes", timeout=5
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
     response = await joint_fixture.rest_client.get(
-        f"/objects/{drs_id}/envelopes", timeout=60
+        f"/objects/{drs_id}/envelopes", timeout=5
     )
     assert response.status_code == status.HTTP_200_OK
 
     response = await joint_fixture.rest_client.get(
         f"/objects/{drs_id}/envelopes",
-        timeout=60,
+        timeout=5,
         headers={"Authorization": "Bearer invalid"},
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
