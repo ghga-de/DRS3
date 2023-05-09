@@ -120,6 +120,7 @@ async def test_happy(
     response = await joint_fixture.rest_client.get(
         f"/objects/{drs_id}/envelopes", timeout=5
     )
+    print(response.json())
     assert response.status_code == status.HTTP_200_OK
 
     response = await joint_fixture.rest_client.get(
