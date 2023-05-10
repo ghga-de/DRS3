@@ -7,7 +7,7 @@ auth_check_claims:
   exp: null
   iat: null
   name: null
-auth_key: placeholder
+auth_key: '{}'
 auth_map_claims: {}
 auto_reload: true
 aws_config_ini: null
