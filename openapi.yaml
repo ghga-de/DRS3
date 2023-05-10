@@ -200,12 +200,12 @@ components:
       - object_id
       title: HttpObjectNotFoundErrorData
       type: object
-    HttpTokenAuthenticationError:
+    HttpWrongFileAuthorizationError:
       additionalProperties: false
       description: A custom exception body model.
       properties:
         data:
-          $ref: '#/components/schemas/HttpTokenAuthenticationErrorData'
+          $ref: '#/components/schemas/HttpWrongFileAuthorizationErrorData'
         description:
           description: A human readable message to the client explaining the cause
             of the exception.
@@ -213,21 +213,21 @@ components:
           type: string
         exception_id:
           enum:
-          - tokenAuthenticationError
+          - wrongFileAuthorizationError
           title: Exception Id
           type: string
       required:
       - data
       - description
       - exception_id
-      title: HttpTokenAuthenticationError
+      title: HttpWrongFileAuthorizationError
       type: object
-    HttpTokenAuthenticationErrorData:
+    HttpWrongFileAuthorizationErrorData:
       description: 'An empty model used as default for describing exception data.
 
         Please overwrite this to define your own data model.'
       properties: {}
-      title: HttpTokenAuthenticationErrorData
+      title: HttpWrongFileAuthorizationErrorData
       type: object
     ValidationError:
       properties:
@@ -305,14 +305,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpTokenAuthenticationError'
-          description: 'Work order token could not be validated. Either the wrong
-            signing public key  has been provided or the token is malformed or has
-            been tampered with.
+                $ref: '#/components/schemas/HttpWrongFileAuthorizationError'
+          description: 'Work order token announced wrong file ID.
 
             Exceptions by ID:
 
-            - tokenAuthenticationError: Failed to validate work oder token'
+            - wrongFileAuthorizationError: Mismatch of URL file ID and token file
+            ID'
         '404':
           content:
             application/json:
@@ -358,14 +357,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpTokenAuthenticationError'
-          description: 'Work order token could not be validated. Either the wrong
-            signing public key  has been provided or the token is malformed or has
-            been tampered with.
+                $ref: '#/components/schemas/HttpWrongFileAuthorizationError'
+          description: 'Work order token announced wrong file ID.
 
             Exceptions by ID:
 
-            - tokenAuthenticationError: Failed to validate work oder token'
+            - wrongFileAuthorizationError: Mismatch of URL file ID and token file
+            ID'
         '404':
           content:
             application/json:
