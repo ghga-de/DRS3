@@ -20,7 +20,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class WorkOrderToken(BaseModel):
-    """Work order token model"""
+    """Auth context for a work order token used for downloads"""
 
     type: Union[Literal["download"], Literal["upload"]] = Field(
         ..., title="Type", help="Work type"
