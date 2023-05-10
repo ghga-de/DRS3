@@ -45,7 +45,7 @@ class WorkOrderContext(BaseModel):
     @validator("type")
     @classmethod
     def type_must_be_download(cls, work_type):
-        """Make sure download type matches expectation"""
+        """Make sure work type matches expectation for the download controller"""
         if work_type != "download":
             raise ValueError("Only download work type is accepted by the DCS.")
         return work_type
