@@ -26,10 +26,7 @@ from hexkit.providers.mongodb.testutils import mongodb_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import FileObject
-from httpx import Headers
 
-from dcs.config import WorkOrderTokenConfig
-from dcs.container import auth_provider
 from tests.fixtures.joint import *  # noqa: F403
 
 
@@ -42,16 +39,8 @@ async def test_happy(
     drs_id = populated_fixture.drs_id
     example_file = populated_fixture.example_file
     joint_fixture = populated_fixture.joint_fixture
-    user_pubkey = populated_fixture.user_pubkey
 
     # simplify testing by using one longer lived work order token
-
-    # modify default headers and patch signing pubkey
-    joint_fixture.rest_client.headers = Headers(
-        {"Authorization": f"Bearer {work_order_token}"}
-    )
-    auth_provider_override = auth_provider(config=WorkOrderTokenConfig(auth_key=pubkey))
-    joint_fixture.container.auth_provider.override(auth_provider_override)
 
     # request access to the newly registered file:
     # (An check that an event is published indicating that the file is not in
@@ -116,7 +105,6 @@ async def test_happy(
     response = await joint_fixture.rest_client.get(
         f"/objects/{drs_id}/envelopes", timeout=5
     )
-    print(response.json())
     assert response.status_code == status.HTTP_200_OK
 
     response = await joint_fixture.rest_client.get(

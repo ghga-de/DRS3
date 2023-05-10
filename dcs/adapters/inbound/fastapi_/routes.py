@@ -112,7 +112,7 @@ async def get_drs_object(
     """
 
     if not work_order_context.file_id == object_id:
-        raise http_exceptions.HttpWrongFileAuthorizationError(cause="File ID mismatch")
+        raise http_exceptions.HttpWrongFileAuthorizationError()
 
     try:
         drs_object = await data_repository.access_drs_object(drs_id=object_id)
@@ -156,7 +156,7 @@ async def get_envelope(  # noqa: C901
     """
 
     if not work_order_context.file_id == object_id:
-        raise http_exceptions.HttpWrongFileAuthorizationError(cause="File ID mismatch")
+        raise http_exceptions.HttpWrongFileAuthorizationError()
 
     public_key = work_order_context.user_public_crypt4gh_key
 

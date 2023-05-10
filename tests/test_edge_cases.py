@@ -17,7 +17,6 @@
 
 import pytest
 from fastapi import status
-from ghga_service_commons.utils.crypt import encode_key, generate_key_pair
 from hexkit.providers.mongodb.testutils import mongodb_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
@@ -43,12 +42,9 @@ async def test_access_non_existing(joint_fixture: JointFixture):  # noqa F811
     expected exception."""
 
     file_id = "my-non-existing-id"
-    user_pubkey = encode_key(generate_key_pair().public)
 
     # request access to non existing DRS object:
-    work_order_token, pubkey = get_work_order_token(  # noqa: F405
-        file_id=file_id, user_pubkey=user_pubkey
-    )
+    work_order_token, pubkey = get_work_order_token(file_id=file_id)  # noqa: F405
 
     # test with missing authorization header
     response = await joint_fixture.rest_client.get(f"/objects/{file_id}")
@@ -68,14 +64,14 @@ async def test_access_non_existing(joint_fixture: JointFixture):  # noqa F811
     with joint_fixture.container.auth_provider.override(auth_provider_override):
         # test with correct authorization header but wrong object_id
         response = await joint_fixture.rest_client.get(
-            "/objects/my-non-existing-id",
+            f"/objects/{file_id}",
             timeout=5,
             headers={"Authorization": f"Bearer {work_order_token}"},
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
         response = await joint_fixture.rest_client.get(
-            "/objects/my-non-existing-id/envelopes",
+            f"/objects/{file_id}/envelopes",
             timeout=5,
             headers={"Authorization": f"Bearer {work_order_token}"},
         )

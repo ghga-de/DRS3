@@ -43,8 +43,8 @@ from hexkit.providers.mongodb.testutils import mongodb_fixture
 from hexkit.providers.s3.testutils import S3Fixture, s3_fixture
 from pydantic import BaseSettings
 
-from dcs.config import Config
-from dcs.container import Container
+from dcs.config import Config, WorkOrderTokenConfig
+from dcs.container import Container, auth_provider
 from dcs.core import auth_policies, models
 from dcs.main import get_configured_container, get_rest_api
 from tests.fixtures.config import get_config
@@ -71,11 +71,12 @@ def get_free_port() -> int:
 
 def get_work_order_token(
     file_id: str,
-    user_pubkey: str,
     valid_seconds: int = 30,
 ) -> tuple[SignedToken, PubKey]:
     """Generate work order token for testing"""
 
+    # we don't need the actual user pubkey
+    user_pubkey = encode_key(generate_key_pair().public)
     # generate minimal test token
     wot = auth_policies.WorkOrderContext(
         type="download",
@@ -120,8 +121,10 @@ async def joint_fixture(
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing"""
 
+    auth_key = jwt_helpers.generate_jwk().export(private_key=False)
     with MockAPIContainer() as ekss_api:
         # merge configs from different sources with the default one:
+        auth_config = WorkOrderTokenConfig(auth_key=auth_key)
         ekss_config = EKSSBaseInjector(ekss_base_url=ekss_api.get_connection_url())
 
         config = get_config(
@@ -130,6 +133,7 @@ async def joint_fixture(
                 s3_fixture.config,
                 kafka_fixture.config,
                 ekss_config,
+                auth_config,
             ]
         )
         # create a DI container instance:translators
@@ -160,17 +164,6 @@ async def joint_fixture(
                 )
 
 
-class TokenWithKey:
-    """"""
-
-    def __init__(self, file_id: str, user_pubkey: str, valid_seconds: int = 60):
-        work_order_token, pubkey = get_work_order_token(  # noqa: F405
-            file_id=file_id, user_pubkey=user_pubkey, valid_seconds=valid_seconds
-        )
-        self.token = work_order_token
-        self.signing_key = pubkey
-
-
 @dataclass
 class PopulatedFixture:
     """Returned by `populated_fixture()`."""
@@ -178,9 +171,6 @@ class PopulatedFixture:
     drs_id: str
     example_file: models.DrsObject
     joint_fixture: JointFixture
-    user_pubkey: str
-    valid_happy_token: TokenWithKey
-    valid_sad_token: TokenWithKey
 
 
 @pytest_asyncio.fixture
@@ -226,17 +216,20 @@ async def populated_fixture(
     assert file_registered_event.decrypted_sha256 == EXAMPLE_FILE.decrypted_sha256
     assert file_registered_event.upload_date == EXAMPLE_FILE.creation_date
 
-    user_pubkey = encode_key(generate_key_pair().public)
+    work_order_token, pubkey = get_work_order_token(  # noqa: F405
+        file_id=EXAMPLE_FILE.file_id,
+        valid_seconds=120,
+    )
+
+    # modify default headers and patch signing pubkey
+    joint_fixture.rest_client.headers = httpx.Headers(
+        {"Authorization": f"Bearer {work_order_token}"}
+    )
+    auth_provider_override = auth_provider(config=WorkOrderTokenConfig(auth_key=pubkey))
+    joint_fixture.container.auth_provider.override(auth_provider_override)
 
     yield PopulatedFixture(
         drs_id=EXAMPLE_FILE.file_id,
         example_file=EXAMPLE_FILE,
         joint_fixture=joint_fixture,
-        user_pubkey=user_pubkey,
-        valid_happy_token=TokenWithKey(
-            file_id=EXAMPLE_FILE.file_id, user_pubkey=user_pubkey, valid_seconds=120
-        ),
-        valid_sad_token=TokenWithKey(
-            file_id="my-non-existing-id", user_pubkey=user_pubkey
-        ),
     )

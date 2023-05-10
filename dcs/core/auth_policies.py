@@ -32,7 +32,7 @@ class WorkOrderContext(BaseModel):
         help="The ID of the file that shall be downloaded or uploaded",
     )
     user_id: str = Field(..., title="User ID", help="The internal ID of the user")
-    user_public_crypt4gh_key: bytes = Field(
+    user_public_crypt4gh_key: str = Field(
         ..., help="Base64 encoded Crypt4GH public key of the user"
     )
     full_user_name: str = Field(
@@ -43,13 +43,16 @@ class WorkOrderContext(BaseModel):
     email: EmailStr = Field(..., title="E-Mail", help="The email address of the user")
 
     @validator("type")
-    def type_must_be_download(self, work_type):
+    @classmethod
+    def type_must_be_download(cls, work_type):
         """Make sure download type matches expectation"""
         if work_type != "download":
             raise ValueError("Only download work type is accepted by the DCS.")
         return work_type
 
     @validator("user_public_crypt4gh_key")
-    def validate_crypt4gh_key(self, pubkey):
+    @classmethod
+    def validate_crypt4gh_key(cls, pubkey):
         """Make sure the received pubkey is decodable"""
-        return decode_key(pubkey)
+        decode_key(pubkey)
+        return pubkey

@@ -7,7 +7,7 @@ auth_check_claims:
   exp: null
   iat: null
   name: null
-auth_key: '{"crv":"P-256","kty":"EC","x":"yBTtQdsuz8mav1MVYC6lk6MN9GJA30w6L2WOZywYZqE","y":"5HvxOSLXpdAGcnGl9OSe8j71OI7QAe_ZPubPdFDdGvQ"}'
+auth_key: placeholder
 auth_map_claims: {}
 auto_reload: true
 aws_config_ini: null
