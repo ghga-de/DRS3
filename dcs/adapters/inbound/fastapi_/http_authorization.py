@@ -35,7 +35,7 @@ async def require_access_token(
     ),
 ) -> str:
     """Require an access token using FastAPI."""
-    return require_auth_context_using_credentials(
+    return await require_auth_context_using_credentials(
         credentials=credentials, auth_provider=auth_provider
     )
 
