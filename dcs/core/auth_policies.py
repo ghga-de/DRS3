@@ -43,16 +43,14 @@ class WorkOrderContext(BaseModel):
     email: EmailStr = Field(..., title="E-Mail", help="The email address of the user")
 
     @validator("type")
-    @classmethod
-    def type_must_be_download(cls, work_type):
+    def type_must_be_download(cls, work_type):  # pylint: disable=no-self-argument
         """Make sure work type matches expectation for the download controller"""
         if work_type != "download":
             raise ValueError("Only download work type is accepted by the DCS.")
         return work_type
 
     @validator("user_public_crypt4gh_key")
-    @classmethod
-    def validate_crypt4gh_key(cls, pubkey):
+    def validate_crypt4gh_key(cls, pubkey):  # pylint: disable=no-self-argument
         """Make sure the received pubkey is decodable"""
         decode_key(pubkey)
         return pubkey
