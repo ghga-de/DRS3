@@ -14,7 +14,7 @@
 # limitations under the License.
 """Authoriaztion specific code for FastAPI"""
 
-__all__ = ["require_work_order_token"]
+__all__ = ["require_work_order_context"]
 
 
 from dependency_injector.wiring import Provide, inject
@@ -28,7 +28,7 @@ from dcs.core.auth_policies import WorkOrderContext
 
 
 @inject
-async def require_work_order_context(
+async def _require_work_order_context(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True)),
     auth_provider: AuthContextProtocol[WorkOrderContext] = Depends(
         Provide[Container.auth_provider]
@@ -40,4 +40,4 @@ async def require_work_order_context(
     )
 
 
-require_work_order_token = Security(require_work_order_context)
+require_work_order_context = Security(_require_work_order_context)

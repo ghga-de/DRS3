@@ -104,7 +104,7 @@ async def health():
 @inject
 async def get_drs_object(
     object_id: str,
-    work_order_context: WorkOrderContext = http_authorization.require_work_order_token,
+    work_order_context: WorkOrderContext = http_authorization.require_work_order_context,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
@@ -147,7 +147,7 @@ async def get_drs_object(
 @inject
 async def get_envelope(  # noqa: C901
     object_id: str,
-    work_order_context: WorkOrderContext = http_authorization.require_work_order_token,
+    work_order_context: WorkOrderContext = http_authorization.require_work_order_context,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """

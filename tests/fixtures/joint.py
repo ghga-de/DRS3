@@ -27,7 +27,6 @@ __all__ = [
 ]
 
 import json
-import socket
 from dataclasses import dataclass
 from datetime import datetime
 from typing import AsyncGenerator
@@ -35,6 +34,7 @@ from typing import AsyncGenerator
 import httpx
 import pytest_asyncio
 from ghga_event_schemas import pydantic_ as event_schemas
+from ghga_service_commons.api.testing import AsyncTestClient
 from ghga_service_commons.utils import jwt_helpers
 from ghga_service_commons.utils.crypt import encode_key, generate_key_pair
 from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture
@@ -60,13 +60,6 @@ EXAMPLE_FILE = models.DrsObject(
 
 SignedToken = str
 PubKey = str
-
-
-def get_free_port() -> int:
-    """Finds and returns a free port on localhost."""
-    sock = socket.socket()
-    sock.bind(("", 0))
-    return int(sock.getsockname()[1])
 
 
 def get_work_order_token(
@@ -149,11 +142,8 @@ async def joint_fixture(
             await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
 
             api = get_rest_api(config=config)
-            port = get_free_port()
             # setup an API test client:
-            async with httpx.AsyncClient(
-                app=api, base_url=f"http://localhost:{port}"
-            ) as rest_client:
+            async with AsyncTestClient(app=api) as rest_client:
                 yield JointFixture(
                     config=config,
                     container=container,
