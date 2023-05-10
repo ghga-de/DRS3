@@ -34,7 +34,7 @@ async def require_work_order_context(
         Provide[Container.auth_provider]
     ),
 ) -> WorkOrderContext:
-    """Require an access token using FastAPI."""
+    """Require a work order context using FastAPI."""
     return await require_auth_context_using_credentials(
         credentials=credentials, auth_provider=auth_provider
     )
