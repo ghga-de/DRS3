@@ -16,8 +16,6 @@
 Module containing the main FastAPI router and all route functions.
 """
 
-from typing import Awaitable
-
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
@@ -28,7 +26,7 @@ from dcs.adapters.inbound.fastapi_ import (
     http_responses,
 )
 from dcs.container import Container
-from dcs.core.auth_policies import WorkOrderToken
+from dcs.core.auth_policies import WorkOrderContext
 from dcs.core.models import DrsObjectResponseModel
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 
@@ -65,14 +63,13 @@ RESPONSES = {
         ),
         "model": http_response_models.DeliveryDelayedModel,
     },
-    "tokenAuthenticationError": {
+    "wrongFileAuthorizationError": {
         "description": (
-            "Work order token could not be validated. Either the wrong signing public key "
-            + " has been provided or the token is malformed or has been tampered with."
+            "Work order token announced wrong file ID."
             + "\nExceptions by ID:"
-            + "\n- tokenAuthenticationError: Failed to validate work oder token"
+            + "\n- wrongFileAuthorizationError: Mismatch of URL file ID and token file ID"
         ),
-        "model": http_exceptions.HttpTokenAuthenticationError.get_body_model(),
+        "model": http_exceptions.HttpWrongFileAuthorizationError.get_body_model(),
     },
 }
 
@@ -100,27 +97,22 @@ async def health():
     response_description="The DrsObject was found successfully.",
     responses={
         status.HTTP_202_ACCEPTED: RESPONSES["objectNotInOutbox"],
-        status.HTTP_403_FORBIDDEN: RESPONSES["tokenAuthenticationError"],
+        status.HTTP_403_FORBIDDEN: RESPONSES["wrongFileAuthorizationError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["noSuchObject"],
     },
 )
 @inject
 async def get_drs_object(
     object_id: str,
-    auth_context: Awaitable[
-        WorkOrderToken
-    ] = http_authorization.require_work_order_token,
+    work_order_context: WorkOrderContext = http_authorization.require_work_order_token,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
     Get info about a ``DrsObject``.
     """
 
-    work_order_token: WorkOrderToken = await auth_context
-    try:
-        work_order_token.matches_type_and_file_id(file_id=object_id)
-    except ValueError as error:
-        raise http_exceptions.HttpTokenAuthenticationError(cause=str(error)) from error
+    if not work_order_context.file_id == object_id:
+        raise http_exceptions.HttpWrongFileAuthorizationError(cause="File ID mismatch")
 
     try:
         drs_object = await data_repository.access_drs_object(drs_id=object_id)
@@ -147,7 +139,7 @@ async def get_drs_object(
     response_model=http_response_models.EnvelopeResponseModel,
     response_description="Successfully delivered envelope.",
     responses={
-        status.HTTP_403_FORBIDDEN: RESPONSES["tokenAuthenticationError"],
+        status.HTTP_403_FORBIDDEN: RESPONSES["wrongFileAuthorizationError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["entryNotFoundError"],
         status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["externalAPIError"],
     },
@@ -155,9 +147,7 @@ async def get_drs_object(
 @inject
 async def get_envelope(  # noqa: C901
     object_id: str,
-    auth_context: Awaitable[
-        WorkOrderToken
-    ] = http_authorization.require_work_order_token,
+    work_order_context: WorkOrderContext = http_authorization.require_work_order_token,
     data_repository: DataRepositoryPort = Depends(Provide[Container.data_repository]),
 ):
     """
@@ -165,13 +155,10 @@ async def get_envelope(  # noqa: C901
     URL safe base64 encoded public key
     """
 
-    work_order_token: WorkOrderToken = await auth_context
-    try:
-        work_order_token.matches_type_and_file_id(file_id=object_id)
-    except ValueError as error:
-        raise http_exceptions.HttpTokenAuthenticationError(cause=str(error)) from error
+    if not work_order_context.file_id == object_id:
+        raise http_exceptions.HttpWrongFileAuthorizationError(cause="File ID mismatch")
 
-    public_key = work_order_token.user_public_crypt4gh_key
+    public_key = work_order_context.user_public_crypt4gh_key
 
     try:
         envelope = await data_repository.serve_envelope(

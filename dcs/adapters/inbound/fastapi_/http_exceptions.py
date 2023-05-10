@@ -66,16 +66,16 @@ class HttpObjectNotFoundError(HttpCustomExceptionBase):
         )
 
 
-class HttpTokenAuthenticationError(HttpCustomExceptionBase):
+class HttpWrongFileAuthorizationError(HttpCustomExceptionBase):
     """Raised when a work order token cannot be validated"""
 
-    exception_id = "tokenAuthenticationError"
+    exception_id = "wrongFileAuthorizationError"
 
-    def __init__(self, *, cause: str, status_code: int = 403):
+    def __init__(self, *, status_code: int = 403):
         """Construct message and init the exception."""
 
         super().__init__(
             status_code=status_code,
-            description="The work order token could not be validated.",
-            data={"cause": cause},
+            description="Endpoint file ID did not match file ID announced in work order token.",
+            data={},
         )

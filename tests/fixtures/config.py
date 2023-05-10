@@ -25,7 +25,6 @@ from tests.fixtures.utils import BASE_DIR
 
 TEST_CONFIG_YAML = BASE_DIR / "test_config.yaml"
 
-
 def get_config(
     sources: Optional[List[BaseSettings]] = None,
     default_config_yaml: Path = TEST_CONFIG_YAML,

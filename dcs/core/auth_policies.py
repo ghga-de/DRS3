@@ -16,11 +16,12 @@
 
 from typing import Literal, Union
 
-from pydantic import BaseModel, EmailStr, Field
+from ghga_service_commons.utils.crypt import decode_key
+from pydantic import BaseModel, EmailStr, Field, validator
 
 
-class WorkOrderToken(BaseModel):
-    """Auth context for a work order token used for downloads"""
+class WorkOrderContext(BaseModel):
+    """Work order token model"""
 
     type: Union[Literal["download"], Literal["upload"]] = Field(
         ..., title="Type", help="Work type"
@@ -31,7 +32,7 @@ class WorkOrderToken(BaseModel):
         help="The ID of the file that shall be downloaded or uploaded",
     )
     user_id: str = Field(..., title="User ID", help="The internal ID of the user")
-    user_public_crypt4gh_key: str = Field(
+    user_public_crypt4gh_key: bytes = Field(
         ..., help="Base64 encoded Crypt4GH public key of the user"
     )
     full_user_name: str = Field(
@@ -41,10 +42,14 @@ class WorkOrderToken(BaseModel):
     )
     email: EmailStr = Field(..., title="E-Mail", help="The email address of the user")
 
-    def matches_type_and_file_id(self, *, file_id: str):
-        """Validate token target file id and endpoint type match expectations"""
+    @validator("type")
+    def type_must_be_download(self, work_type):
+        """Make sure download type matches expectation"""
+        if work_type != "download":
+            raise ValueError("Only download work type is accepted by the DCS.")
+        return work_type
 
-        if self.type != "download":
-            raise ValueError("Got token for wrong endpoint type.")
-        if self.file_id != file_id:
-            raise ValueError("Got token for wrong file_id.")
+    @validator("user_public_crypt4gh_key")
+    def validate_crypt4gh_key(self, pubkey):
+        """Make sure the received pubkey is decodable"""
+        return decode_key(pubkey)

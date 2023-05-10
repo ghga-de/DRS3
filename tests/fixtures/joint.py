@@ -36,6 +36,7 @@ import httpx
 import pytest_asyncio
 from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_service_commons.utils import jwt_helpers
+from ghga_service_commons.utils.crypt import encode_key, generate_key_pair
 from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture  # F401
 from hexkit.providers.mongodb.testutils import mongodb_fixture
@@ -76,7 +77,7 @@ def get_work_order_token(
     """Generate work order token for testing"""
 
     # generate minimal test token
-    wot = auth_policies.WorkOrderToken(
+    wot = auth_policies.WorkOrderContext(
         type="download",
         file_id=file_id,
         user_id="007",
@@ -121,7 +122,6 @@ async def joint_fixture(
 
     with MockAPIContainer() as ekss_api:
         # merge configs from different sources with the default one:
-
         ekss_config = EKSSBaseInjector(ekss_base_url=ekss_api.get_connection_url())
 
         config = get_config(
@@ -160,6 +160,17 @@ async def joint_fixture(
                 )
 
 
+class TokenWithKey:
+    """"""
+
+    def __init__(self, file_id: str, user_pubkey: str, valid_seconds: int = 60):
+        work_order_token, pubkey = get_work_order_token(  # noqa: F405
+            file_id=file_id, user_pubkey=user_pubkey, valid_seconds=valid_seconds
+        )
+        self.token = work_order_token
+        self.signing_key = pubkey
+
+
 @dataclass
 class PopulatedFixture:
     """Returned by `populated_fixture()`."""
@@ -167,6 +178,9 @@ class PopulatedFixture:
     drs_id: str
     example_file: models.DrsObject
     joint_fixture: JointFixture
+    user_pubkey: str
+    valid_happy_token: TokenWithKey
+    valid_sad_token: TokenWithKey
 
 
 @pytest_asyncio.fixture
@@ -212,8 +226,17 @@ async def populated_fixture(
     assert file_registered_event.decrypted_sha256 == EXAMPLE_FILE.decrypted_sha256
     assert file_registered_event.upload_date == EXAMPLE_FILE.creation_date
 
+    user_pubkey = encode_key(generate_key_pair().public)
+
     yield PopulatedFixture(
         drs_id=EXAMPLE_FILE.file_id,
         example_file=EXAMPLE_FILE,
         joint_fixture=joint_fixture,
+        user_pubkey=user_pubkey,
+        valid_happy_token=TokenWithKey(
+            file_id=EXAMPLE_FILE.file_id, user_pubkey=user_pubkey, valid_seconds=120
+        ),
+        valid_sad_token=TokenWithKey(
+            file_id="my-non-existing-id", user_pubkey=user_pubkey
+        ),
     )

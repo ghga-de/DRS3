@@ -24,20 +24,20 @@ from ghga_service_commons.auth.context import AuthContextProtocol
 from ghga_service_commons.auth.policies import require_auth_context_using_credentials
 
 from dcs.container import Container
-from dcs.core.auth_policies import WorkOrderToken
+from dcs.core.auth_policies import WorkOrderContext
 
 
 @inject
-async def require_access_token(
+async def require_work_order_context(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True)),
-    auth_provider: AuthContextProtocol[WorkOrderToken] = Depends(
+    auth_provider: AuthContextProtocol[WorkOrderContext] = Depends(
         Provide[Container.auth_provider]
     ),
-) -> str:
+) -> WorkOrderContext:
     """Require an access token using FastAPI."""
     return await require_auth_context_using_credentials(
         credentials=credentials, auth_provider=auth_provider
     )
 
 
-require_work_order_token = Security(require_access_token)
+require_work_order_token = Security(require_work_order_context)
