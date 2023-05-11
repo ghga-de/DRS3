@@ -98,14 +98,14 @@ async def test_happy(
     assert dowloaded_file.content == file_object.content
 
     response = await joint_fixture.rest_client.get(
-        "/objects/invalid_id/envelopes", timeout=5
-    )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-
-    response = await joint_fixture.rest_client.get(
         f"/objects/{drs_id}/envelopes", timeout=5
     )
     assert response.status_code == status.HTTP_200_OK
+
+    response = await joint_fixture.rest_client.get(
+        "/objects/invalid_id/envelopes", timeout=5
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
     response = await joint_fixture.rest_client.get(
         f"/objects/{drs_id}/envelopes",
