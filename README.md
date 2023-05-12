@@ -2,7 +2,7 @@
 [![codecov](https://codecov.io/gh/ghga-de/dcs/branch/main/graph/badge.svg?token=GYH99Y71CK)](https://codecov.io/gh/ghga-de/dcs)
 # Download Controller Service
 
-Download Controller Service - a GA4GH drs compliant service for delivering files from S3
+Download Controller Service - a GA4GH DRS-compliant service for delivering files encrypted according to the GA4GH Crypt4GH standard from S3.
 
 ## Description:
 
