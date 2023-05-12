@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Copyright 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
@@ -17,19 +19,24 @@
 
 import json
 import subprocess  # nosec
+import sys
 from pathlib import Path
 from string import Template
 
 import jsonschema2md
 from pydantic import BaseModel, Field
+from script_utils.cli import echo_failure, echo_success, run
 from setuptools.config.setupcfg import read_configuration
 from stringcase import spinalcase, titlecase
 
-ROOT_DIR = Path(__file__).parent.resolve()
+ROOT_DIR = Path(__file__).parent.parent.resolve()
 SETUP_CFG_PATH = ROOT_DIR / "setup.cfg"
 DESCRIPTION_PATH = ROOT_DIR / ".description.md"
+DESIGN_PATH = ROOT_DIR / ".design.md"
 README_TEMPLATE_PATH = ROOT_DIR / ".readme_template.md"
 CONFIG_SCHEMA_PATH = ROOT_DIR / "config_schema.json"
+OPENAPI_YAML_REL_PATH = "./openapi.yaml"
+README_PATH = ROOT_DIR / "README.md"
 
 
 class PackageHeader(BaseModel):
@@ -60,10 +67,24 @@ class PackageDetails(PackageHeader, PackageName):
     description: str = Field(
         ..., description="A markdown-formatted description of the package."
     )
+    design_description: str = Field(
+        ...,
+        description=(
+            "A markdown-formatted description of overall architecture and design of"
+            + " the package."
+        ),
+    )
     config_description: str = Field(
         ...,
         description=(
             "A markdown-formatted list of all configuration parameters of this package."
+        ),
+    )
+    openapi_doc: str = Field(
+        ...,
+        description=(
+            "A markdown-formatted description rendering or linking to an OpenAPI"
+            " specification of the package."
         ),
     )
 
@@ -106,6 +127,12 @@ def read_package_description() -> str:
     return DESCRIPTION_PATH.read_text()
 
 
+def read_design_description() -> str:
+    """Read the design description."""
+
+    return DESIGN_PATH.read_text()
+
+
 def generate_config_docs() -> str:
     """Generate markdown-formatted documentation for the configration parameters
     listed in the config schema."""
@@ -126,6 +153,23 @@ def generate_config_docs() -> str:
     return "\n".join(md_lines)
 
 
+def generate_openapi_docs() -> str:
+    """Generate markdown-formatted documentation linking to or rendering an OpenAPI
+    specification of the package. If no OpenAPI specification is present, return an
+    empty string."""
+
+    open_api_yaml_path = ROOT_DIR / OPENAPI_YAML_REL_PATH
+
+    if not open_api_yaml_path.exists():
+        return ""
+
+    return (
+        "# HTTP API\n"
+        + "An OpenAPI specification for this service can be found"
+        + f" [here]({OPENAPI_YAML_REL_PATH})."
+    )
+
+
 def get_package_details() -> PackageDetails:
     """Get details required to build documentation for the package."""
 
@@ -137,7 +181,9 @@ def get_package_details() -> PackageDetails:
         **header.dict(),
         **name.dict(),
         description=description,
-        config_description=config_description
+        config_description=config_description,
+        design_description=read_design_description(),
+        openapi_doc=generate_openapi_docs(),
     )
 
 
@@ -150,5 +196,22 @@ def generate_single_readme(*, details: PackageDetails) -> str:
     return template.substitute(details.dict())
 
 
-with open("test_readme.md", "w", encoding="utf-8") as readme_file:
-    readme_file.write(generate_single_readme(details=get_package_details()))
+def main(check: bool = False) -> None:
+    """Update the readme markdown."""
+
+    details = get_package_details()
+    readme_content = generate_single_readme(details=details)
+
+    if check:
+        if README_PATH.read_text() != readme_content:
+            echo_failure("README.md is not up to date.")
+            sys.exit(1)
+        echo_success("README.md is up to date.")
+        return
+
+    README_PATH.write_text(readme_content)
+    echo_success("Successfully updated README.md.")
+
+
+if __name__ == "__main__":
+    run(main)
