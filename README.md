@@ -1,8 +1,7 @@
 
 [![tests](https://github.com/ghga-de/download-controller-service/actions/workflows/unit_and_int_tests.yaml/badge.svg)](https://github.com/ghga-de/download-controller-service/actions/workflows/unit_and_int_tests.yaml)
+[![Coverage Status](https://coveralls.io/repos/github/ghga-de/download-controller-service/badge.svg?branch=main)](https://coveralls.io/github/ghga-de/download-controller-service?branch=main)
 
-
-[![codecov](https://codecov.io/gh/ghga-de/download-controller-service/branch/main/graph/badge.svg?token=GYH99Y71CK)](https://codecov.io/gh/ghga-de/download-controller-service)
 # Download Controller Service
 
 Download Controller Service - a GA4GH DRS-compliant service for delivering files encrypted according to the GA4GH Crypt4GH standard from S3.
