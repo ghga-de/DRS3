@@ -4,7 +4,7 @@
 
 Download Controller Service - a GA4GH DRS-compliant service for delivering files encrypted according to the GA4GH Crypt4GH standard from S3.
 
-## Description:
+## Description
 
 <!-- Please provide a short overview of the features of this service.-->
 
@@ -73,8 +73,8 @@ pip install .
 dcs --help
 ```
 
-## Configuration:
-### Parameters:
+## Configuration
+### Parameters
 
 The service requires the following configuration parameters:
 - **`files_to_register_topic`** *(string)*: The name of the topic to receive events informing about new files that shall be made available for download.
