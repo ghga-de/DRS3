@@ -164,7 +164,7 @@ def generate_openapi_docs() -> str:
         return ""
 
     return (
-        "# HTTP API\n"
+        "## HTTP API\n"
         + "An OpenAPI specification for this service can be found"
         + f" [here]({OPENAPI_YAML_REL_PATH})."
     )

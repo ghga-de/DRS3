@@ -194,7 +194,7 @@ To using file secrets please refer to the
 [corresponding section](https://pydantic-docs.helpmanual.io/usage/settings/#secret-support)
 of the pydantic documentation.
 
-# HTTP API
+## HTTP API
 An OpenAPI specification for this service can be found [here](./openapi.yaml).
 
 ## Architecture and Design:
