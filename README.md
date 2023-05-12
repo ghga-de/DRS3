@@ -95,6 +95,18 @@ The service requires the following configuration parameters:
 
 - **`aws_config_ini`** *(string)*: Path to a config file for specifying more advanced S3 parameters. This should follow the format described here: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#using-a-configuration-file.
 
+- **`auth_key`** *(string)*: The GHGA internal public key for validating the token signature.
+
+- **`auth_algs`** *(array)*: A list of all algorithms used for signing GHGA internal tokens. Default: `['ES256']`.
+
+  - **Items** *(string)*
+
+- **`auth_check_claims`** *(object)*: A dict of all GHGA internal claims that shall be verified. Default: `{'name': None, 'email': None, 'iat': None, 'exp': None}`.
+
+- **`auth_map_claims`** *(object)*: A mapping of claims to attributes in the GHGA auth context. Can contain additional properties. Default: `{}`.
+
+  - **Additional Properties** *(string)*
+
 - **`host`** *(string)*: IP of the host. Default: `127.0.0.1`.
 
 - **`port`** *(integer)*: Port to expose the server on the specified host. Default: `8080`.
