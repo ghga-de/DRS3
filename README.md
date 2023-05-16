@@ -48,14 +48,13 @@ We recommend using the provided Docker container.
 
 A pre-build version is available at [docker hub](https://hub.docker.com/repository/docker/ghga/download-controller-service):
 ```bash
-# Please feel free to choose the version as needed:
-docker pull ghga/download-controller-service:<version>
+docker pull ghga/download-controller-service:0.5.9
 ```
 
 Or you can build the container yourself from the [`./Dockerfile`](./Dockerfile):
 ```bash
 # Execute in the repo's root dir:
-docker build -t ghga/download-controller-service:<version> .
+docker build -t ghga/download-controller-service:0.5.9 .
 ```
 
 For production-ready deployment, we recommend using Kubernetes, however,
@@ -63,7 +62,7 @@ for simple use cases, you could execute the service using docker
 on a single server:
 ```bash
 # The entrypoint is preconfigured:
-docker run -p 8080:8080 ghga/download-controller-service:<version> --help
+docker run -p 8080:8080 ghga/download-controller-service:0.5.9 --help
 ```
 
 If you prefer not to use containers, you may install the service from source:
@@ -236,3 +235,7 @@ if you update dependencies in the [`./setup.cfg`](./setup.cfg) or the
 ## License
 This repository is free to use and modify according to the
 [Apache 2.0 License](./LICENSE).
+
+## Readme Generation
+This readme is autogenerate, please see [`readme_generation.md`](./readme_generation.md)
+for details.
