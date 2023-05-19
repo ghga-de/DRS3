@@ -4,7 +4,7 @@
 
 # Download Controller Service
 
-Download Controller Service - a GA4GH DRS-compliant service for delivering files encrypted according to the GA4GH Crypt4GH standard from S3.
+Download Controller Service - a GA4GH DRS-compliant service for delivering files from S3 encrypted according to the GA4GH Crypt4GH standard.
 
 ## Description
 
@@ -16,8 +16,8 @@ serving files that where encrypted according to the
 [GA4GH Crypt4GH](https://www.ga4gh.org/news/crypt4gh-a-secure-method-for-sharing-human-genetic-data/)
 from S3-compatible object storages.
 
-Thereby, only the `GET /objects/{object_id}` is implemented. It always return
-an access_method for accessing the object via S3. This makes the second endpoint
+Thereby, only the `GET /objects/{object_id}` is implemented. It always returns
+an access_method for the object via S3. This makes the second endpoint
 `GET /objects/{object_id}/access/{access_id}` that
 is contained in the DRS spec unnecessary. For more details see the OpenAPI spec
 described below.
@@ -26,10 +26,10 @@ For authorization, a JWT token is expected via Bearer Authentication that has a 
 described [here](./dcs/core/auth_policies.py).
 
 All files that can be requested are registered in a MongoDB database owned and
-controlled by this service. Registration of new events happens through an Kafka event.
+controlled by this service. Registration of new events happens through a Kafka event.
 
 It serves pre-signed URLs to S3 objects located in a single so-called outbox bucket.
-If the file is not already in the bucket upon when the user calls the object endpoint,
+If the file is not already in the bucket when the user calls the object endpoint,
 an event is published to request staging the file to the outbox. The staging has to
 be carried out by a different service.
 
@@ -37,9 +37,9 @@ For more details on the events consumed and produced by this service, see the
 configuration.
 
 The DRS object endpoint serves files in an encrypted fashion as described by the
-Crypt4GH standard but without the evelope. A user-specific envelope can be requested
+Crypt4GH standard, but without the evelope. A user-specific envelope can be requested
 from the `GET /objects/{object_id}/envelopes` endpoint. The actual envelope creation
-is delecated to another service via a RESTful call. Please see the configuration for
+is delegated to another service via a RESTful call. Please see the configuration for
 further details.
 
 
