@@ -50,12 +50,13 @@ from dcs.main import get_configured_container, get_rest_api
 from tests.fixtures.config import get_config
 from tests.fixtures.mock_api.testcontainer import MockAPIContainer
 
-EXAMPLE_FILE = models.DrsObject(
+EXAMPLE_FILE = models.AccessTimeDrsObject(
     file_id="examplefile001",
     decrypted_sha256="0677de3685577a06862f226bb1bfa8f889e96e59439d915543929fb4f011d096",
     creation_date=datetime.now().isoformat(),
     decrypted_size=12345,
     decryption_secret_id="some-secret",
+    last_accessed=datetime.utcnow(),
 )
 
 SignedToken = str

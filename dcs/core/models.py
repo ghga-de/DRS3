@@ -17,6 +17,7 @@
 in the api."""
 
 import re
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, validator
@@ -52,6 +53,14 @@ class DrsObject(BaseModel):
     decrypted_sha256: str
     decrypted_size: int
     creation_date: str
+
+
+class AccessTimeDrsObject(DrsObject):
+    """
+    DRS Model with information for outbox caching strategy
+    """
+
+    last_accessed: datetime
 
 
 class DrsObjectWithUri(DrsObject):
