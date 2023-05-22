@@ -28,7 +28,7 @@ def call_ekss_api(*, secret_id: str, receiver_public_key: str, api_base: str) ->
     public key as well as the id of the file secret."""
 
     receiver_public_key_base64 = base64.urlsafe_b64encode(
-        receiver_public_key.encode()
+        base64.b64decode(receiver_public_key)
     ).decode()
     api_url = f"{api_base}/secrets/{secret_id}/envelopes/{receiver_public_key_base64}"
     try:
