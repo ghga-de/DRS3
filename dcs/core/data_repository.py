@@ -132,13 +132,6 @@ class DataRepository(DataRepositoryPort):
         except ResourceNotFoundError as error:
             raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
 
-        drs_object_with_access_time.last_accessed = datetime.utcnow()
-
-        try:
-            await self._drs_object_dao.update(drs_object_with_access_time)
-        except ResourceNotFoundError as error:
-            raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
-
         drs_object = models.DrsObject(
             **drs_object_with_access_time.dict(exclude={"last_accessed"})
         )
@@ -158,6 +151,14 @@ class DataRepository(DataRepositoryPort):
             raise self.RetryAccessLaterError(
                 retry_after=self._config.retry_access_after
             )
+
+        # Successfully staged, update access information now
+        drs_object_with_access_time.last_accessed = datetime.utcnow()
+        try:
+            await self._drs_object_dao.update(drs_object_with_access_time)
+        except ResourceNotFoundError as error:
+            raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
+
         drs_object_with_access = await self._get_access_model(drs_object=drs_object)
 
         # publish an event indicating the served download:
