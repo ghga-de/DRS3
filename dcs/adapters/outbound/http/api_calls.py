@@ -30,7 +30,7 @@ def call_ekss_api(*, secret_id: str, receiver_public_key: str, api_base: str) ->
     receiver_public_key_base64 = base64.urlsafe_b64encode(
         receiver_public_key.encode()
     ).decode()
-    api_url = f"{api_base}/secrets/{secret_id}/envelopes/'{receiver_public_key_base64}'"
+    api_url = f"{api_base}/secrets/{secret_id}/envelopes/{receiver_public_key_base64}"
     try:
         response = requests.get(url=api_url, timeout=60)
     except requests.exceptions.RequestException as request_error:
