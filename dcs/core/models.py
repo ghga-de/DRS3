@@ -17,7 +17,12 @@
 in the api."""
 
 import re
-from typing import Literal
+
+try:  # workaround for https://github.com/pydantic/pydantic/issues/5821
+    from typing_extensions import Literal
+except ImportError:
+    from typing import Literal  # type: ignore
+
 
 from ghga_service_commons.utils import utc_dates
 from pydantic import BaseModel, validator
