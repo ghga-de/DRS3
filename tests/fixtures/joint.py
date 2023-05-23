@@ -35,7 +35,7 @@ import httpx
 import pytest_asyncio
 from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_service_commons.api.testing import AsyncTestClient
-from ghga_service_commons.utils import jwt_helpers
+from ghga_service_commons.utils import jwt_helpers, utc_dates
 from ghga_service_commons.utils.crypt import encode_key, generate_key_pair
 from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture  # F401
@@ -56,7 +56,7 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
     creation_date=datetime.now().isoformat(),
     decrypted_size=12345,
     decryption_secret_id="some-secret",
-    last_accessed=datetime.utcnow(),
+    last_accessed=utc_dates.now_as_utc(),
 )
 
 SignedToken = str

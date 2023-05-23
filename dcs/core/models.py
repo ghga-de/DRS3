@@ -17,9 +17,9 @@
 in the api."""
 
 import re
-from datetime import datetime
 from typing import Literal
 
+from ghga_service_commons.utils import utc_dates
 from pydantic import BaseModel, validator
 
 
@@ -60,7 +60,7 @@ class AccessTimeDrsObject(DrsObject):
     DRS Model with information for outbox caching strategy
     """
 
-    last_accessed: datetime
+    last_accessed: utc_dates.DateTimeUTC
 
 
 class DrsObjectWithUri(DrsObject):

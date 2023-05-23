@@ -16,8 +16,8 @@
 """Main business-logic of this service"""
 
 import re
-from datetime import datetime
 
+from ghga_service_commons.utils import utc_dates
 from pydantic import BaseSettings, Field, PositiveInt, validator
 
 from dcs.adapters.outbound.http import exceptions
@@ -153,7 +153,7 @@ class DataRepository(DataRepositoryPort):
             )
 
         # Successfully staged, update access information now
-        drs_object_with_access_time.last_accessed = datetime.utcnow()
+        drs_object_with_access_time.last_accessed = utc_dates.now_as_utc()
         try:
             await self._drs_object_dao.update(drs_object_with_access_time)
         except ResourceNotFoundError as error:
@@ -174,7 +174,7 @@ class DataRepository(DataRepositoryPort):
         """Register a file as a new DRS Object."""
 
         file_with_access_time = models.AccessTimeDrsObject(
-            **file.dict(), last_accessed=datetime.utcnow()
+            **file.dict(), last_accessed=utc_dates.now_as_utc()
         )
         # write file entry to database
         await self._drs_object_dao.insert(file_with_access_time)
