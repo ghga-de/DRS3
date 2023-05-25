@@ -16,6 +16,8 @@
 """Join the functionality of all fixtures for API-level integration testing."""
 
 __all__ = [
+    "cleanup_fixture",
+    "CleanupFixture",
     "joint_fixture",
     "JointFixture",
     "mongodb_fixture",
@@ -28,7 +30,7 @@ __all__ = [
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import AsyncGenerator
 
 import httpx
@@ -47,6 +49,7 @@ from dcs.config import Config, WorkOrderTokenConfig
 from dcs.container import Container, auth_provider
 from dcs.core import auth_policies, models
 from dcs.main import get_configured_container, get_rest_api
+from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests.fixtures.config import get_config
 from tests.fixtures.mock_api.testcontainer import MockAPIContainer
 
@@ -137,6 +140,7 @@ async def joint_fixture(
                 modules=[
                     "dcs.adapters.inbound.fastapi_.routes",
                     "dcs.adapters.inbound.fastapi_.http_authorization",
+                    "dcs.core.cleanup",
                 ]
             )
 
@@ -161,7 +165,7 @@ class PopulatedFixture:
     """Returned by `populated_fixture()`."""
 
     drs_id: str
-    example_file: models.DrsObject
+    example_file: models.AccessTimeDrsObject
     joint_fixture: JointFixture
 
 
@@ -224,4 +228,47 @@ async def populated_fixture(
         drs_id=EXAMPLE_FILE.file_id,
         example_file=EXAMPLE_FILE,
         joint_fixture=joint_fixture,
+    )
+
+
+@dataclass
+class CleanupFixture:
+    """Fixture for cleanup test with DAO and test files"""
+
+    mongodb_dao: DrsObjectDaoPort
+    cached_id: str
+    expired_id: str
+
+
+@pytest_asyncio.fixture
+async def cleanup_fixture(
+    joint_fixture: JointFixture,
+) -> AsyncGenerator[CleanupFixture, None]:
+    """Set up state for and populate CleanupFixture"""
+
+    test_file_cached = EXAMPLE_FILE.copy(deep=True)
+    test_file_cached.file_id = "cached"
+    test_file_cached.last_accessed = utc_dates.now_as_utc()
+    test_file_cached.in_outbox = True
+
+    test_file_expired = EXAMPLE_FILE.copy(deep=True)
+    test_file_expired.file_id = "expired"
+    test_file_expired.last_accessed = utc_dates.now_as_utc() - timedelta(
+        days=joint_fixture.config.cache_timeout
+    )
+    test_file_expired.in_outbox = True
+
+    mongodb_dao = await joint_fixture.mongodb.dao_factory.get_dao(
+        name="drs_objects",
+        dto_model=models.AccessTimeDrsObject,
+        id_field="file_id",
+    )
+
+    await mongodb_dao.insert(test_file_cached)
+    await mongodb_dao.insert(test_file_expired)
+
+    yield CleanupFixture(
+        mongodb_dao=mongodb_dao,
+        cached_id=test_file_cached.file_id,
+        expired_id=test_file_expired.file_id,
     )

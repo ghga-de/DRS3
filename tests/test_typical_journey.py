@@ -27,6 +27,7 @@ from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import FileObject
 
+from dcs.main import run_outbox_cleanup
 from tests.fixtures.joint import *  # noqa: F403
 
 
@@ -152,3 +153,19 @@ async def test_happy_deletion(
     assert not await joint_fixture.s3.storage.does_object_exist(
         bucket_id=joint_fixture.config.outbox_bucket, object_id=drs_id
     )
+
+
+@pytest.mark.asyncio
+async def test_cleanup(cleanup_fixture: CleanupFixture):  # noqa: F405,F811
+    """Test outbox cleanup handling directly manipulating the DB"""
+
+    await run_outbox_cleanup()
+    cached_valid = await cleanup_fixture.mongodb_dao.get_by_id(
+        cleanup_fixture.cached_id
+    )
+    assert cached_valid.in_outbox
+
+    cached_expired = await cleanup_fixture.mongodb_dao.get_by_id(
+        cleanup_fixture.expired_id
+    )
+    assert not cached_expired.in_outbox

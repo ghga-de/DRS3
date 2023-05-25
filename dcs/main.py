@@ -78,7 +78,7 @@ async def consume_events(run_forever: bool = True):
         await event_subscriber.run(forever=run_forever)
 
 
-async def cleanup_outbox():
+async def run_outbox_cleanup():
     """Check if outbox contains files that should be cleaned up and perform clean-up"""
 
     config = Config()
