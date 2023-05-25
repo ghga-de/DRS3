@@ -445,6 +445,15 @@
         "dcs_api_route"
       ],
       "type": "string"
+    },
+    "cache_timeout": {
+      "title": "Cache Timeout",
+      "description": "Time in days since last access after which a file present in the outbox should be unstaged and has to be requested from permanent storage again for the next request.",
+      "default": 7,
+      "env_names": [
+        "dcs_cache_timeout"
+      ],
+      "type": "integer"
     }
   },
   "required": [

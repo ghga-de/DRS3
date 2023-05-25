@@ -56,6 +56,7 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
     creation_date=datetime.now().isoformat(),
     decrypted_size=12345,
     decryption_secret_id="some-secret",
+    in_outbox=False,
     last_accessed=utc_dates.now_as_utc(),
 )
 

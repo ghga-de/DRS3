@@ -65,6 +65,7 @@ class AccessTimeDrsObject(DrsObject):
     DRS Model with information for outbox caching strategy
     """
 
+    in_outbox: bool
     last_accessed: utc_dates.DateTimeUTC
 
 

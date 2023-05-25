@@ -158,6 +158,7 @@ class DataRepository(DataRepositoryPort):
 
         # Successfully staged, update access information now
         drs_object_with_access_time.last_accessed = utc_dates.now_as_utc()
+        drs_object_with_access_time.in_outbox = True
         try:
             await self._drs_object_dao.update(drs_object_with_access_time)
         except ResourceNotFoundError as error:
@@ -183,30 +184,32 @@ class DataRepository(DataRepositoryPort):
         is met or exceeded, the corresponding file is removed from the outbox.
         """
         threshold = utc_dates.now_as_utc() - timedelta(days=cache_timeout)
-        mapping = {"and": [{"last_accessed": {"lte": threshold}}, {"in_outbox": {}}]}
+        # filter to get all files in outbox that should be removed
+        mapping = {"and": [{"last_accessed": {"lte": threshold}}, {"in_outbox": True}]}
         async for expired_file in self._drs_object_dao.find_all(mapping=mapping):
             s3_id = expired_file.file_id
-            # only remove if currently in outbox
-            if await self._object_storage.does_object_exist(
-                bucket_id=self._config.outbox_bucket, object_id=s3_id
-            ):
-                try:
-                    await self._object_storage.delete_object(
-                        bucket_id=self._config.outbox_bucket, object_id=s3_id
-                    )
-                except (
-                    self._object_storage.ObjectError,
-                    self._object_storage.ObjectStorageProtocolError,
-                ) as error:
-                    raise self.CleanupError(
-                        object_id=s3_id, from_error=error
-                    ) from error
+
+            try:
+                await self._object_storage.delete_object(
+                    bucket_id=self._config.outbox_bucket, object_id=s3_id
+                )
+            except (
+                self._object_storage.ObjectError,
+                self._object_storage.ObjectStorageProtocolError,
+            ) as error:
+                raise self.CleanupError(object_id=s3_id, from_error=error) from error
+
+            # update database entry
+            expired_file.in_outbox = False
+            self._drs_object_dao.upsert(expired_file)
 
     async def register_new_file(self, *, file: models.DrsObject):
         """Register a file as a new DRS Object."""
 
         file_with_access_time = models.AccessTimeDrsObject(
-            **file.dict(), last_accessed=utc_dates.now_as_utc()
+            **file.dict(),
+            last_accessed=utc_dates.now_as_utc(),
+            in_outbox=False,
         )
         # write file entry to database
         await self._drs_object_dao.insert(file_with_access_time)
