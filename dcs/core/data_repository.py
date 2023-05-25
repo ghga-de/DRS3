@@ -16,6 +16,7 @@
 """Main business-logic of this service"""
 
 import re
+from datetime import timedelta
 
 from ghga_service_commons.utils import utc_dates
 from pydantic import BaseSettings, Field, PositiveInt, validator
@@ -172,6 +173,34 @@ class DataRepository(DataRepositoryPort):
             bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
         )
         return drs_object_with_access.convert_to_drs_response_model(size=encrypted_size)
+
+    async def cleanup_outbox(self, cache_timeout: int):
+        """
+        Check if files present in the outbox have outlived their allocated time and remove
+        all that do.
+        For each file in the outbox, its 'last_accessed' field is checked and compared
+        to the current datetime. If the threshold configured in the cache_timeout option
+        is met or exceeded, the corresponding file is removed from the outbox.
+        """
+        threshold = utc_dates.now_as_utc() - timedelta(days=cache_timeout)
+        mapping = {"and": [{"last_accessed": {"lte": threshold}}, {"in_outbox": {}}]}
+        async for expired_file in self._drs_object_dao.find_all(mapping=mapping):
+            s3_id = expired_file.file_id
+            # only remove if currently in outbox
+            if await self._object_storage.does_object_exist(
+                bucket_id=self._config.outbox_bucket, object_id=s3_id
+            ):
+                try:
+                    await self._object_storage.delete_object(
+                        bucket_id=self._config.outbox_bucket, object_id=s3_id
+                    )
+                except (
+                    self._object_storage.ObjectError,
+                    self._object_storage.ObjectStorageProtocolError,
+                ) as error:
+                    raise self.CleanupError(
+                        object_id=s3_id, from_error=error
+                    ) from error
 
     async def register_new_file(self, *, file: models.DrsObject):
         """Register a file as a new DRS Object."""

@@ -22,6 +22,7 @@ from dcs.adapters.inbound.fastapi_.custom_openapi import get_openapi_schema
 from dcs.adapters.inbound.fastapi_.routes import router
 from dcs.config import Config
 from dcs.container import Container
+from dcs.core.cleanup import clean_outbox_cache
 
 
 def get_configured_container(*, config: Config) -> Container:
@@ -75,3 +76,13 @@ async def consume_events(run_forever: bool = True):
     async with get_configured_container(config=config) as container:
         event_subscriber = await container.event_subscriber()
         await event_subscriber.run(forever=run_forever)
+
+
+async def cleanup_outbox():
+    """Check if outbox contains files that should be cleaned up and perform clean-up"""
+
+    config = Config()
+
+    async with get_configured_container(config=config) as container:
+        container.wire(modules=["dcs.core.cleanup"])
+        await clean_outbox_cache()

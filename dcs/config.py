@@ -55,5 +55,11 @@ class Config(
 ):
     """Config parameters and their defaults."""
 
-    service_name: str = "dcs"
     api_route: str = "/ga4gh/drs/v1"
+    cache_timeout: int = Field(
+        7,
+        description="Time in days since last access after which a file present in the "
+        + "outbox should be unstaged and has to be requested from permanent storage again "
+        + "for the next request.",
+    )
+    service_name: str = "dcs"
