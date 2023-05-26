@@ -95,7 +95,7 @@ class DataRepositoryPort(ABC):
     async def delete_file(self, *, file_id: str) -> None:
         """Deletes a file from the outbox storage, the internal database and the
         corresponding secret from the secrets store.
-        If no file with that id exists, do nothing.
+        If no file or secret with that id exists, do nothing.
 
         Args:
             file_id: id for the file to delete.
