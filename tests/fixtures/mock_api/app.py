@@ -71,7 +71,8 @@ async def ready():
 
 
 @app.get(
-    "/secrets/{secret_id}/envelopes/{receiver_public_key}", summary="ekss_api_call_mock"
+    "/secrets/{secret_id}/envelopes/{receiver_public_key}",
+    summary="ekss_get_envelope_mock",
 )
 async def ekss_get_envelope_mock(secret_id: str, receiver_public_key: str):
     """
@@ -91,7 +92,7 @@ async def ekss_get_envelope_mock(secret_id: str, receiver_public_key: str):
     return {"content": envelope}
 
 
-@app.get("/secrets/{secret_id}")
+@app.delete("/secrets/{secret_id}", summary="ekss_delete_secret_mock")
 async def ekss_delete_secret_mock(secret_id: str, receiver_public_key: str):
     """
     Mock for the drs3 /objects/{file_id} call
