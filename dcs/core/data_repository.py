@@ -225,16 +225,17 @@ class DataRepository(DataRepositoryPort):
             file_id: id for the file to delete.
         """
 
-        # get secret id
-        drs_object = await self._drs_object_dao.get_by_id(id_=file_id)
-
-        # Call EKSS to remove file secret from vault
+        # Get secret_id, call EKSS to remove file secret from vault
         try:
+            drs_object = await self._drs_object_dao.get_by_id(id_=file_id)
             delete_secret_from_ekss(
                 secret_id=drs_object.decryption_secret_id,
                 api_base=self._config.ekss_base_url,
             )
-        except exceptions.SecretNotFoundError:
+        except (
+            exceptions.SecretNotFoundError,
+            self._object_storage.ObjectNotFoundError,
+        ):
             # If the secret does not exist, we are done
             pass
 
