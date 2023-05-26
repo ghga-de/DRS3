@@ -22,7 +22,7 @@ download_served_event_topic: file_downloads
 download_served_event_type: donwload_served
 drs_server_uri: drs://localhost:8080/
 ekss_base_url: http://ekss:8080/
-file_deleted_event_topic: internal_file_registry
+file_deleted_event_topic: file_downloads
 file_deleted_event_type: file_deleted
 file_registered_event_topic: file_downloads
 file_registered_event_type: file_registered

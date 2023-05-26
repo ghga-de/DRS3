@@ -80,7 +80,7 @@ class EventPubTranslatorConfig(BaseSettings):
         ...,
         description="Name of the topic used for events indicating that a file has"
         + " been deleted.",
-        example="internal_file_registry",
+        example="file_downloads",
     )
     file_deleted_event_type: str = Field(
         ...,

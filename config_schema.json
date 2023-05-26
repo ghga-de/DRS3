@@ -96,7 +96,7 @@
     "file_deleted_event_topic": {
       "title": "File Deleted Event Topic",
       "description": "Name of the topic used for events indicating that a file has been deleted.",
-      "example": "internal_file_registry",
+      "example": "file_downloads",
       "env_names": [
         "dcs_file_deleted_event_topic"
       ],
