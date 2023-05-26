@@ -93,7 +93,7 @@ async def ekss_get_envelope_mock(secret_id: str, receiver_public_key: str):
 
 
 @app.delete("/secrets/{secret_id}", summary="ekss_delete_secret_mock")
-async def ekss_delete_secret_mock(secret_id: str, receiver_public_key: str):
+async def ekss_delete_secret_mock(secret_id: str):
     """
     Mock for the drs3 /objects/{file_id} call
     """
