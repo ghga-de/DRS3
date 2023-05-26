@@ -113,7 +113,7 @@ class EventSubTranslator(EventSubscriberProtocol):
 
         if type_ == self._config.files_to_register_type:
             await self._consume_files_to_register(payload=payload)
-        if type_ == self._config.files_to_delete_type:
+        elif type_ == self._config.files_to_delete_type:
             await self._consume_file_deletions(payload=payload)
         else:
             raise RuntimeError(f"Unexpected event of type: {type_}")
