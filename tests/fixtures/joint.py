@@ -59,7 +59,6 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
     creation_date=datetime.now().isoformat(),
     decrypted_size=12345,
     decryption_secret_id="some-secret",
-    in_outbox=False,
     last_accessed=utc_dates.now_as_utc(),
 )
 
@@ -249,14 +248,12 @@ async def cleanup_fixture(
     test_file_cached = EXAMPLE_FILE.copy(deep=True)
     test_file_cached.file_id = "cached"
     test_file_cached.last_accessed = utc_dates.now_as_utc()
-    test_file_cached.in_outbox = True
 
     test_file_expired = EXAMPLE_FILE.copy(deep=True)
     test_file_expired.file_id = "expired"
     test_file_expired.last_accessed = utc_dates.now_as_utc() - timedelta(
         days=joint_fixture.config.cache_timeout
     )
-    test_file_expired.in_outbox = True
 
     mongodb_dao = await joint_fixture.mongodb.dao_factory.get_dao(
         name="drs_objects",
