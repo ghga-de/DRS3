@@ -59,6 +59,12 @@ class DataRepositoryConfig(BaseSettings):
         description="Expiration time in seconds for presigned URLS. Positive integer required",
         example=30,
     )
+    cache_timeout: int = Field(
+        7,
+        description="Time in days since last access after which a file present in the "
+        + "outbox should be unstaged and has to be requested from permanent storage again "
+        + "for the next request.",
+    )
 
     # pylint: disable=no-self-argument
     @validator("drs_server_uri")

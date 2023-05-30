@@ -22,7 +22,6 @@ from dcs.adapters.inbound.fastapi_.custom_openapi import get_openapi_schema
 from dcs.adapters.inbound.fastapi_.routes import router
 from dcs.config import Config
 from dcs.container import Container
-from dcs.core.cleanup import clean_outbox_cache
 
 
 def get_configured_container(*, config: Config) -> Container:
@@ -84,5 +83,5 @@ async def run_outbox_cleanup():
     config = Config()
 
     async with get_configured_container(config=config) as container:
-        container.wire(modules=["dcs.core.cleanup"])
-        await clean_outbox_cache()
+        data_repository = await container.data_repository()
+        await data_repository.cleanup_outbox(cache_timeout=config.cache_timeout)

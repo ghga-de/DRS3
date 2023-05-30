@@ -139,7 +139,6 @@ async def joint_fixture(
                 modules=[
                     "dcs.adapters.inbound.fastapi_.routes",
                     "dcs.adapters.inbound.fastapi_.http_authorization",
-                    "dcs.core.cleanup",
                 ]
             )
 
