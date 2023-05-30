@@ -27,6 +27,7 @@ from hexkit.providers.s3.testutils import file_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import s3_fixture  # noqa: F401
 from hexkit.providers.s3.testutils import FileObject
 
+from dcs.core.cleanup import clean_outbox_cache
 from tests.fixtures.joint import *  # noqa: F403
 
 
@@ -157,3 +158,22 @@ async def test_happy_deletion(
 @pytest.mark.asyncio
 async def test_cleanup(cleanup_fixture: CleanupFixture):  # noqa: F405,F811
     """Test outbox cleanup handling"""
+    await clean_outbox_cache()
+
+    # check if object within threshold is still there
+    cached_object = await cleanup_fixture.mongodb_dao.get_by_id(
+        cleanup_fixture.cached_id
+    )
+    assert await cleanup_fixture.joint_fixture.s3.storage.does_object_exist(
+        bucket_id=cleanup_fixture.joint_fixture.config.outbox_bucket,
+        object_id=cached_object.file_id,
+    )
+
+    # check if expired object has been removed from outbox
+    expired_object = await cleanup_fixture.mongodb_dao.get_by_id(
+        cleanup_fixture.expired_id
+    )
+    assert not await cleanup_fixture.joint_fixture.s3.storage.does_object_exist(
+        bucket_id=cleanup_fixture.joint_fixture.config.outbox_bucket,
+        object_id=expired_object.file_id,
+    )

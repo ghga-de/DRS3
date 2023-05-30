@@ -19,7 +19,6 @@ import re
 from datetime import timedelta
 
 from ghga_service_commons.utils import utc_dates
-from hexkit.protocols.dao import MultipleHitsFoundError, NoHitsFoundError
 from pydantic import BaseSettings, Field, PositiveInt, validator
 
 from dcs.adapters.outbound.http import exceptions
@@ -190,10 +189,9 @@ class DataRepository(DataRepositoryPort):
             bucket_id=self._config.outbox_bucket
         )
         for outbox_id in outbox_ids:
-            mapping = {"file_id": outbox_id}
             try:
-                drs_object = await self._drs_object_dao.find_one(mapping=mapping)
-            except (MultipleHitsFoundError, NoHitsFoundError) as error:
+                drs_object = await self._drs_object_dao.get_by_id(outbox_id)
+            except ResourceNotFoundError as error:
                 raise self.CleanupError(
                     object_id=outbox_id, from_error=error
                 ) from error

@@ -42,7 +42,7 @@ from ghga_service_commons.utils.crypt import encode_key, generate_key_pair
 from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture  # F401
 from hexkit.providers.mongodb.testutils import mongodb_fixture
-from hexkit.providers.s3.testutils import S3Fixture, s3_fixture
+from hexkit.providers.s3.testutils import S3Fixture, s3_fixture, temp_file_object
 from pydantic import BaseSettings
 
 from dcs.config import Config, WorkOrderTokenConfig
@@ -235,6 +235,7 @@ class CleanupFixture:
     """Fixture for cleanup test with DAO and test files"""
 
     mongodb_dao: DrsObjectDaoPort
+    joint_fixture: JointFixture
     cached_id: str
     expired_id: str
 
@@ -245,6 +246,7 @@ async def cleanup_fixture(
 ) -> AsyncGenerator[CleanupFixture, None]:
     """Set up state for and populate CleanupFixture"""
 
+    # create AccessTimeDrsObjects for valid cached and expired cached file
     test_file_cached = EXAMPLE_FILE.copy(deep=True)
     test_file_cached.file_id = "cached"
     test_file_cached.last_accessed = utc_dates.now_as_utc()
@@ -255,17 +257,28 @@ async def cleanup_fixture(
         days=joint_fixture.config.cache_timeout
     )
 
+    # populate DB entries
     mongodb_dao = await joint_fixture.mongodb.dao_factory.get_dao(
         name="drs_objects",
         dto_model=models.AccessTimeDrsObject,
         id_field="file_id",
     )
-
     await mongodb_dao.insert(test_file_cached)
     await mongodb_dao.insert(test_file_expired)
 
+    # populate storage
+    with temp_file_object(
+        bucket_id=joint_fixture.config.outbox_bucket, object_id=test_file_cached.file_id
+    ) as cached_file:
+        with temp_file_object(
+            bucket_id=joint_fixture.config.outbox_bucket,
+            object_id=test_file_expired.file_id,
+        ) as expired_file:
+            await joint_fixture.s3.populate_file_objects([cached_file, expired_file])
+
     yield CleanupFixture(
         mongodb_dao=mongodb_dao,
+        joint_fixture=joint_fixture,
         cached_id=test_file_cached.file_id,
         expired_id=test_file_expired.file_id,
     )
