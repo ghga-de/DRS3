@@ -90,7 +90,7 @@ class DataRepositoryPort(ABC):
         ...
 
     @abstractmethod
-    async def cleanup_outbox(self, cache_timeout: int):
+    async def cleanup_outbox(self):
         """
         Check if files present in the outbox have outlived their allocated time and remove
         all that do.

@@ -180,7 +180,7 @@ class DataRepository(DataRepositoryPort):
         )
         return drs_object_with_access.convert_to_drs_response_model(size=encrypted_size)
 
-    async def cleanup_outbox(self, cache_timeout: int):
+    async def cleanup_outbox(self):
         """
         Check if files present in the outbox have outlived their allocated time and remove
         all that do.
@@ -188,7 +188,7 @@ class DataRepository(DataRepositoryPort):
         to the current datetime. If the threshold configured in the cache_timeout option
         is met or exceeded, the corresponding file is removed from the outbox.
         """
-        threshold = utc_dates.now_as_utc() - timedelta(days=cache_timeout)
+        threshold = utc_dates.now_as_utc() - timedelta(days=self._config.cache_timeout)
 
         # filter to get all files in outbox that should be removed
         outbox_ids = await self._object_storage.list_all_object_ids(

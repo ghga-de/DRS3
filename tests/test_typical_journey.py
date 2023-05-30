@@ -158,9 +158,7 @@ async def test_happy_deletion(
 async def test_cleanup(cleanup_fixture: CleanupFixture):  # noqa: F405,F811
     """Test outbox cleanup handling"""
     data_repository = await cleanup_fixture.joint_fixture.container.data_repository()
-    await data_repository.cleanup_outbox(
-        cache_timeout=cleanup_fixture.joint_fixture.config.cache_timeout
-    )
+    await data_repository.cleanup_outbox()
 
     # check if object within threshold is still there
     cached_object = await cleanup_fixture.mongodb_dao.get_by_id(

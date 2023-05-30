@@ -84,4 +84,4 @@ async def run_outbox_cleanup():
 
     async with get_configured_container(config=config) as container:
         data_repository = await container.data_repository()
-        await data_repository.cleanup_outbox(cache_timeout=config.cache_timeout)
+        await data_repository.cleanup_outbox()
