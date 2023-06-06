@@ -191,29 +191,31 @@ class DataRepository(DataRepositoryPort):
         threshold = utc_dates.now_as_utc() - timedelta(days=self._config.cache_timeout)
 
         # filter to get all files in outbox that should be removed
-        outbox_ids = await self._object_storage.list_all_object_ids(
+        object_ids = await self._object_storage.list_all_object_ids(
             bucket_id=self._config.outbox_bucket
         )
-        for outbox_id in outbox_ids:
+        for object_id in object_ids:
             try:
-                drs_object = await self._drs_object_dao.get_by_id(outbox_id)
+                drs_object = await self._drs_object_dao.find_one(
+                    mapping={"object_id": object_id}
+                )
             except ResourceNotFoundError as error:
                 raise self.CleanupError(
-                    object_id=outbox_id, from_error=error
+                    object_id=object_id, from_error=error
                 ) from error
 
             # only remove file if last access is later than cache timeout days ago
             if drs_object.last_accessed <= threshold:
                 try:
                     await self._object_storage.delete_object(
-                        bucket_id=self._config.outbox_bucket, object_id=outbox_id
+                        bucket_id=self._config.outbox_bucket, object_id=object_id
                     )
                 except (
                     self._object_storage.ObjectError,
                     self._object_storage.ObjectStorageProtocolError,
                 ) as error:
                     raise self.CleanupError(
-                        object_id=outbox_id, from_error=error
+                        object_id=object_id, from_error=error
                     ) from error
 
     async def register_new_file(self, *, file: models.DrsObject):
