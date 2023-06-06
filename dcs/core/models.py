@@ -54,6 +54,7 @@ class DrsObject(BaseModel):
     """
 
     file_id: str
+    object_id: str
     decryption_secret_id: str
     decrypted_sha256: str
     decrypted_size: int
