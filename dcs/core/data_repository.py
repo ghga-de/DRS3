@@ -154,7 +154,8 @@ class DataRepository(DataRepositoryPort):
         ):
             # publish an event to request a stage of the corresponding file:
             await self._event_publisher.unstaged_download_requested(
-                drs_object=drs_object_with_uri
+                drs_object=drs_object_with_uri,
+                target_bucket_id=self._config.outbox_bucket,
             )
 
             # instruct to retry later:

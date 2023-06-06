@@ -31,7 +31,7 @@ class EventPublisherPort(ABC):
 
     @abstractmethod
     async def unstaged_download_requested(
-        self, *, drs_object: models.DrsObjectWithUri
+        self, *, drs_object: models.DrsObjectWithUri, target_bucket_id: str
     ) -> None:
         """Communicates the event that a download was requested for a file that
         is not yet available in the outbox."""
