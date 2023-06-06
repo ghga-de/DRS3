@@ -286,7 +286,7 @@ class DataRepository(DataRepositoryPort):
         # Try to remove file from S3
         try:
             await self._object_storage.delete_object(
-                bucket_id=self._config.outbox_bucket, object_id=file_id
+                bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
             )
 
         except self._object_storage.ObjectNotFoundError:
