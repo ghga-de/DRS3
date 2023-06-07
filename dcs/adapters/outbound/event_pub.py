@@ -102,12 +102,16 @@ class EventPubTranslator(EventPublisherPort):
         self._config = config
         self._provider = provider
 
-    async def download_served(self, *, drs_object: models.DrsObjectWithUri) -> None:
+    async def download_served(
+        self, *, drs_object: models.DrsObjectWithUri, target_bucket_id: str
+    ) -> None:
         """Communicate the event of a download being served. This can be relevant for
         auditing purposes."""
 
         payload = event_schemas.FileDownloadServed(
             file_id=drs_object.file_id,
+            target_object_id=drs_object.object_id,
+            target_bucket_id=target_bucket_id,
             decrypted_sha256=drs_object.decrypted_sha256,
             context="unknown",
         )
