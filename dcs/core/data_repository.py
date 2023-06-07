@@ -119,7 +119,7 @@ class DataRepository(DataRepositoryPort):
 
         access_url = await self._object_storage.get_object_download_url(
             bucket_id=self._config.outbox_bucket,
-            object_id=drs_object.file_id,
+            object_id=drs_object.object_id,
             expires_after=self._config.presigned_url_expires_after,
         )
 
@@ -150,7 +150,7 @@ class DataRepository(DataRepositoryPort):
 
         # check if the file corresponding to the DRS object is already in the outbox:
         if not await self._object_storage.does_object_exist(
-            bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
+            bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
         ):
             # publish an event to request a stage of the corresponding file:
             await self._event_publisher.unstaged_download_requested(
@@ -173,11 +173,13 @@ class DataRepository(DataRepositoryPort):
         drs_object_with_access = await self._get_access_model(drs_object=drs_object)
 
         # publish an event indicating the served download:
-        await self._event_publisher.download_served(drs_object=drs_object_with_uri)
+        await self._event_publisher.download_served(
+            drs_object=drs_object_with_uri, target_bucket_id=self._config.outbox_bucket
+        )
 
         # CLI needs to have the encrypted size to correctly download all file parts
         encrypted_size = await self._object_storage.get_object_size(
-            bucket_id=self._config.outbox_bucket, object_id=drs_object.file_id
+            bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
         )
         return drs_object_with_access.convert_to_drs_response_model(size=encrypted_size)
 
