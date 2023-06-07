@@ -83,7 +83,7 @@ class EventSubTranslator(EventSubscriberProtocol):
             payload=payload, schema=event_schemas.FileInternallyRegistered
         )
 
-        object_id = uuid.uuid4()
+        object_id = str(uuid.uuid4())
 
         file = models.DrsObject(
             file_id=validated_payload.file_id,
