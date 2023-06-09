@@ -261,7 +261,7 @@ class DataRepository(DataRepositoryPort):
                 api_url=self._config.ekss_base_url
             ) from error
         except exceptions.SecretNotFoundError as error:
-            raise self.EnvelopeNotFoundError(object_id=drs_id) from error
+            raise self.EnvelopeNotFoundError(object_id=drs_object.object_id) from error
 
         return envelope
 

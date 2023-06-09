@@ -136,7 +136,7 @@ async def test_happy_deletion(
     file_object = file_fixture.copy(
         update={
             "bucket_id": joint_fixture.config.outbox_bucket,
-            "object_id": drs_id,
+            "object_id": object_id,
         }
     )
     await joint_fixture.s3.populate_file_objects(file_objects=[file_object])
