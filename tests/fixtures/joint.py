@@ -177,8 +177,8 @@ async def populated_fixture(
     # publish an event to register a new file for download:
     files_to_register_event = event_schemas.FileInternallyRegistered(
         file_id=EXAMPLE_FILE.file_id,
-        source_object_id=EXAMPLE_FILE.object_id,
-        source_bucket_id=joint_fixture.config.outbox_bucket,
+        object_id=EXAMPLE_FILE.object_id,
+        bucket_id=joint_fixture.config.outbox_bucket,
         upload_date=EXAMPLE_FILE.creation_date,
         decrypted_size=EXAMPLE_FILE.decrypted_size,
         decrypted_sha256=EXAMPLE_FILE.decrypted_sha256,
