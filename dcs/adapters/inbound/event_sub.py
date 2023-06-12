@@ -15,7 +15,6 @@
 
 """Adapter for receiving events providing metadata on files"""
 
-import uuid
 
 from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_event_schemas.validation import get_validated_payload
@@ -83,11 +82,8 @@ class EventSubTranslator(EventSubscriberProtocol):
             payload=payload, schema=event_schemas.FileInternallyRegistered
         )
 
-        object_id = str(uuid.uuid4())
-
-        file = models.DrsObject(
+        file = models.DrsObjectBase(
             file_id=validated_payload.file_id,
-            object_id=object_id,
             decryption_secret_id=validated_payload.decryption_secret_id,
             decrypted_sha256=validated_payload.decrypted_sha256,
             decrypted_size=validated_payload.decrypted_size,

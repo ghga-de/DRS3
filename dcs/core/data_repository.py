@@ -16,6 +16,7 @@
 """Main business-logic of this service"""
 
 import re
+import uuid
 from datetime import timedelta
 
 from ghga_service_commons.utils import utc_dates
@@ -221,18 +222,20 @@ class DataRepository(DataRepositoryPort):
                         object_id=object_id, from_error=error
                     ) from error
 
-    async def register_new_file(self, *, file: models.DrsObject):
+    async def register_new_file(self, *, file: models.DrsObjectBase):
         """Register a file as a new DRS Object."""
+        object_id = str(uuid.uuid4())
+        drs_object = models.DrsObject(**file.dict(), object_id=object_id)
 
         file_with_access_time = models.AccessTimeDrsObject(
-            **file.dict(),
+            **drs_object.dict(),
             last_accessed=utc_dates.now_as_utc(),
         )
         # write file entry to database
         await self._drs_object_dao.insert(file_with_access_time)
 
         # publish message that the drs file has been registered
-        drs_object_with_uri = self._get_model_with_self_uri(drs_object=file)
+        drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
         await self._event_publisher.file_registered(drs_object=drs_object_with_uri)
 
     async def serve_envelope(self, *, drs_id: str, public_key: str) -> str:

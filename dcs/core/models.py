@@ -48,17 +48,22 @@ class Checksum(BaseModel):
     type: Literal["sha-256"] = "sha-256"
 
 
-class DrsObject(BaseModel):
+class DrsObjectBase(BaseModel):
     """
     A model containing the metadata needed to register a new DRS object.
     """
 
     file_id: str
-    object_id: str
     decryption_secret_id: str
     decrypted_sha256: str
     decrypted_size: int
     creation_date: str
+
+
+class DrsObject(DrsObjectBase):
+    """A DrsObjectBase with the object_id generated"""
+
+    object_id: str
 
 
 class AccessTimeDrsObject(DrsObject):
