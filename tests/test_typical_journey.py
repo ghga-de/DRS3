@@ -63,8 +63,6 @@ async def test_happy_journey(
     joint_fixture = populated_fixture.joint_fixture
     object_id = populated_fixture.object_id
 
-    # httpx_mock.add_response(status_code=200, url="http://ekss/")
-
     # explicitly handle ekss API calls (and name unintercepted hosts above)
     httpx_mock.add_callback(
         callback=router.handle_request,
