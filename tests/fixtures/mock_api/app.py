@@ -17,7 +17,10 @@
 import httpx
 from fastapi import status
 from ghga_service_commons.api.mock_router import MockRouter
-from httpyexpect.server import HttpCustomExceptionBase
+from ghga_service_commons.httpyexpect.server.exceptions import (
+    HttpCustomExceptionBase,
+    HttpException,
+)
 
 
 class HttpSecretNotFoundError(HttpCustomExceptionBase):
@@ -34,32 +37,19 @@ class HttpSecretNotFoundError(HttpCustomExceptionBase):
         )
 
 
-class HttpException(Exception):
-    """Testing stand in for httpyexpect HttpException without content validation"""
-
-    def __init__(
-        self, *, status_code: int, exception_id: str, description: str, data: dict
-    ):
-        self.status_code = status_code
-        self.exception_id = exception_id
-        self.description = description
-        self.data = data
-        super().__init__(description)
-
-
-def httpy_exception_handler(exc: HttpException):
+def httpy_exception_handler(request: httpx.Request, exc: HttpException):
     """Transform HttpException data into a proper response object"""
     return httpx.Response(
         status_code=exc.status_code,
         json={
-            "exception_id": exc.exception_id,
-            "description": exc.description,
-            "data": exc.data,
+            "exception_id": exc.body.exception_id,
+            "description": exc.body.description,
+            "data": exc.body.data,
         },
     )
 
 
-router = MockRouter()
+router = MockRouter(http_exception_handler=httpy_exception_handler)
 
 
 @router.get(
