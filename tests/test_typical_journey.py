@@ -27,7 +27,7 @@ from hexkit.providers.s3.testutils import FileObject
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from tests.fixtures.joint import *  # noqa: F403
-from tests.fixtures.mock_api.app import handle_request
+from tests.fixtures.mock_api.app import router
 
 unintercepted_hosts: list[str] = ["localhost"]
 
@@ -67,7 +67,7 @@ async def test_happy_journey(
 
     # explicitly handle ekss API calls (and name unintercepted hosts above)
     httpx_mock.add_callback(
-        callback=handle_request,
+        callback=router.handle_request,
         url=re.compile(rf"^{joint_fixture.config.ekss_base_url}.*"),
     )
 
@@ -166,7 +166,7 @@ async def test_happy_deletion(
 
     # explicitly handle ekss API calls (and name unintercepted hosts above)
     httpx_mock.add_callback(
-        callback=handle_request,
+        callback=router.handle_request,
         url=re.compile(rf"^{joint_fixture.config.ekss_base_url}.*"),
     )
 

@@ -16,9 +16,8 @@
 
 import httpx
 from fastapi import status
+from ghga_service_commons.api.mock_router import MockRouter
 from httpyexpect.server import HttpCustomExceptionBase
-
-from tests.fixtures.endpoints_handler import EndpointsHandler
 
 
 class HttpSecretNotFoundError(HttpCustomExceptionBase):
@@ -60,7 +59,10 @@ def httpy_exception_handler(exc: HttpException):
     )
 
 
-@EndpointsHandler.get(
+router = MockRouter()
+
+
+@router.get(
     "/secrets/{secret_id}/envelopes/{receiver_public_key}",
 )
 def ekss_get_envelope_mock(secret_id: str, receiver_public_key: str):
@@ -80,7 +82,7 @@ def ekss_get_envelope_mock(secret_id: str, receiver_public_key: str):
     return httpx.Response(status_code=status.HTTP_200_OK, json={"content": envelope})
 
 
-@EndpointsHandler.delete("/secrets/{secret_id}")
+@router.delete("/secrets/{secret_id}")
 def ekss_delete_secret_mock(secret_id: str):
     """
     Mock API call to the EKSS to delete file secret
@@ -92,14 +94,3 @@ def ekss_delete_secret_mock(secret_id: str):
         raise HttpSecretNotFoundError()
 
     return httpx.Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-def handle_request(request: httpx.Request):
-    """
-    This is used as the callback function for the httpx_mock fixture
-    """
-    try:
-        endpoint_function = EndpointsHandler.build_loaded_endpoint_function(request)
-        return endpoint_function()
-    except HttpException as exc:
-        return httpy_exception_handler(exc=exc)
