@@ -22,6 +22,9 @@ import httpx
 import pytest
 from fastapi import status
 from ghga_event_schemas import pydantic_ as event_schemas
+from ghga_service_commons.api.mock_router import (  # noqa: F401
+    assert_all_responses_were_requested,
+)
 from hexkit.providers.akafka.testutils import ExpectedEvent
 from hexkit.providers.s3.testutils import FileObject
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
@@ -40,15 +43,6 @@ def non_mocked_hosts() -> list:
     localhost and the host from the S3 fixture's connection URL.
     """
     return unintercepted_hosts
-
-
-@pytest.fixture
-def assert_all_responses_were_requested() -> bool:
-    """Fixture used by httpx_mock.
-
-    Deactivates error that is otherwise raised if all mocked requests aren't used.
-    """
-    return False
 
 
 @pytest.mark.asyncio
