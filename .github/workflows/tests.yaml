@@ -15,8 +15,10 @@ jobs:
 
       - name: Run pytest
         run: |
+          export ${{ steps.common.outputs.CONFIG_YAML_ENV_VAR_NAME }}="${{ steps.common.outputs.CONFIG_YAML }}"
+
           pytest \
-            --cov="${{steps.common.outputs.PACKAGE_NAME}}" \
+            --cov="${{ steps.common.outputs.PACKAGE_NAME }}" \
             tests
 
       - id: coveralls
