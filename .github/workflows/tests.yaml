@@ -16,7 +16,7 @@ jobs:
       - name: Run pytest
         run: |
           pytest \
-            --cov="${{steps.common.outputs.MAIN_SRC_DIR}}" \
+            --cov="${{steps.common.outputs.PACKAGE_NAME}}" \
             tests
 
       # - id: coveralls
