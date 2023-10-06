@@ -16,7 +16,7 @@ jobs:
       - name: Run pytest
         run: |
           pip uninstall -y dcs
-          pip install -e ./src
+          pip install -e .
           pytest \
             --cov=./src
 
