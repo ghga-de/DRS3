@@ -13,7 +13,7 @@ jobs:
       - id: common
         uses: ghga-de/gh-action-common@v3
 
-      - id: Install package in edit mode
+      - name: Install package in edit mode
         run: |
           pip uninstall -y dcs
           pip install --no-deps -e .
