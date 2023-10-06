@@ -21,7 +21,7 @@ from fastapi.openapi.utils import get_openapi
 from dcs import __version__
 from dcs.config import Config
 
-config = Config()
+config = Config()  # type: ignore
 
 
 def get_openapi_schema(api) -> dict[str, Any]:

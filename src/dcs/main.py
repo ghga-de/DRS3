@@ -49,14 +49,14 @@ def get_rest_api(*, config: Config) -> FastAPI:
         api.openapi_schema = openapi_schema
         return api.openapi_schema
 
-    api.openapi = custom_openapi  # type: ignore [assignment]
+    api.openapi = custom_openapi  # type: ignore [method-assign]
 
     return api
 
 
 async def run_rest():
     """Run the HTTP REST API."""
-    config = Config()
+    config = Config()  # type: ignore
 
     async with get_configured_container(config=config) as container:
         container.wire(
@@ -71,7 +71,7 @@ async def run_rest():
 
 async def consume_events(run_forever: bool = True):
     """Run an event consumer listening to the specified topic."""
-    config = Config()
+    config = Config()  # type: ignore
 
     async with get_configured_container(config=config) as container:
         event_subscriber = await container.event_subscriber()
@@ -80,7 +80,7 @@ async def consume_events(run_forever: bool = True):
 
 async def run_outbox_cleanup():
     """Check if outbox contains files that should be cleaned up and perform clean-up"""
-    config = Config()
+    config = Config()  # type: ignore
 
     async with get_configured_container(config=config) as container:
         data_repository = await container.data_repository()
