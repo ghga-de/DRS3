@@ -13,15 +13,12 @@ jobs:
       - id: common
         uses: ghga-de/gh-action-common@v3
 
-      - name: Install package in edit mode
-        run: |
-          pip uninstall -y dcs
-          pip install --no-deps -e .
-
       - name: Run pytest
         run: |
+          SITE_PACKAGE_DIR="$(pip show ${{steps.common.outputs.MAIN_SRC_DIR}} | grep Location: |  sed "s/^Location: //")"
+          SOURCE_DIR=${${SITE_PACKAGE_DIR}/${{steps.common.outputs.MAIN_SRC_DIR}}}
           pytest \
-            --cov=./src \
+            --cov="${SOURCE_DIR}" \
             tests
 
       # - id: coveralls
