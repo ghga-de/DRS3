@@ -3,9 +3,9 @@ name: Unit and Integration Tests
 on: push
 
 jobs:
-  unit_and_int_tests:
+  test:
     runs-on: ubuntu-latest
-    name: Unit and Integration Tests
+    name: Tests
 
     steps:
       - uses: actions/checkout@v3
@@ -17,7 +17,7 @@ jobs:
         run: |
           export ${{ steps.common.outputs.CONFIG_YAML_ENV_VAR_NAME }}="${{ steps.common.outputs.CONFIG_YAML }}"
           pytest \
-            --cov="${{ steps.common.outputs.MAIN_SRC_DIR }}" \
+            --cov=./src \
             --cov-report=xml
 
       - id: coveralls
