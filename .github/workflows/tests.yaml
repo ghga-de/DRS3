@@ -15,10 +15,8 @@ jobs:
 
       - name: Run pytest
         run: |
-          SITE_PACKAGE_DIR="$(pip show ${{steps.common.outputs.MAIN_SRC_DIR}} | grep Location: |  sed "s/^Location: //")"
-          SOURCE_DIR=${${SITE_PACKAGE_DIR}/${{steps.common.outputs.MAIN_SRC_DIR}}}
           pytest \
-            --cov="${SOURCE_DIR}" \
+            --cov="${{steps.common.outputs.MAIN_SRC_DIR}}" \
             tests
 
       # - id: coveralls
