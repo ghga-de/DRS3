@@ -19,6 +19,7 @@ jobs:
 
           pytest \
             --cov="${{ steps.common.outputs.PACKAGE_NAME }}" \
+            --cov-report=xml \
             tests
 
       - id: coveralls
