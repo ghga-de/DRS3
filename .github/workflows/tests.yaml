@@ -13,10 +13,13 @@ jobs:
       - id: common
         uses: ghga-de/gh-action-common@v3
 
-      - name: Run pytest
+      - id: Install package in edit mode
         run: |
           pip uninstall -y dcs
           pip install --no-deps -e .
+
+      - name: Run pytest
+        run: |
           pytest \
             --cov=./src \
             tests
