@@ -1,4 +1,4 @@
-name: Unit and Integration Tests
+name: Tests
 
 on: push
 
@@ -17,13 +17,12 @@ jobs:
         run: |
           export ${{ steps.common.outputs.CONFIG_YAML_ENV_VAR_NAME }}="${{ steps.common.outputs.CONFIG_YAML }}"
           pytest \
-            --cov=./src \
-            --cov-report=xml
+            --cov=./src
 
-      - id: coveralls
-        name: Upload coverage to coveralls
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          pip install --upgrade coveralls
-          coveralls --service=github
+      # - id: coveralls
+      #   name: Upload coverage to coveralls
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     pip install --upgrade coveralls
+      #     coveralls --service=github
