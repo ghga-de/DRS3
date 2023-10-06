@@ -16,9 +16,10 @@ jobs:
       - name: Run pytest
         run: |
           pip uninstall -y dcs
-          pip install -e .
+          pip install --no-deps -e .
           pytest \
-            --cov=./src
+            --cov=./src \
+            tests
 
       # - id: coveralls
       #   name: Upload coverage to coveralls
