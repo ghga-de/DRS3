@@ -16,13 +16,12 @@ jobs:
       - name: Run pytest
         run: |
           pytest \
-            --cov="${{steps.common.outputs.PACKAGE_NAME}}" \
-            tests
+            --cov="${{steps.common.outputs.PACKAGE_NAME}}"
 
-      # - id: coveralls
-      #   name: Upload coverage to coveralls
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   run: |
-      #     pip install --upgrade coveralls
-      #     coveralls --service=github
+      - id: coveralls
+        name: Upload coverage to coveralls
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pip install --upgrade coveralls
+          coveralls --service=github
