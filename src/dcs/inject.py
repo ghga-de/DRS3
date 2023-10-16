@@ -28,6 +28,7 @@ from hexkit.protocols.eventpub import EventPublisherProtocol
 from hexkit.protocols.objstorage import ObjectStorageProtocol
 from hexkit.providers.akafka import KafkaEventPublisher, KafkaEventSubscriber
 from hexkit.providers.mongodb import MongoDbDaoFactory
+from typing_extensions import TypeAlias
 
 from dcs.adapters.inbound.event_sub import EventSubTranslator
 from dcs.adapters.inbound.fastapi_ import dummies
@@ -42,6 +43,7 @@ from dcs.core.data_repository import DataRepository
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from dcs.ports.outbound.event_pub import EventPublisherPort
+from dcs.utils import DependencyResolver
 
 
 @dataclass
@@ -103,6 +105,10 @@ async def prepare_core_dependencies(
         )
 
 
+CoreDependencyResolver: TypeAlias = DependencyResolver[Config, CoreDependencies]
+OutboxCleaner: TypeAlias = Callable[[], Coroutine[None, None, None]]
+
+
 def get_configured_rest_app(*, config: Config) -> FastAPI:
     """Create and configure a REST API application."""
     app = FastAPI()
@@ -122,12 +128,16 @@ def get_configured_rest_app(*, config: Config) -> FastAPI:
 
 
 @asynccontextmanager
-async def prepare_rest_app(*, config: Config) -> AsyncGenerator[FastAPI, None]:
+async def prepare_rest_app(
+    *,
+    config: Config,
+    prep_core_deps: CoreDependencyResolver = prepare_core_dependencies,
+) -> AsyncGenerator[FastAPI, None]:
     """Construct and initialize an REST API app along with all its dependencies."""
     app = get_configured_rest_app(config=config)
 
     async with (
-        prepare_core_dependencies(config=config) as core_dependencies,
+        prep_core_deps(config=config) as core_dependencies,
         JWTAuthContextProvider.construct(
             config=config, context_class=WorkOrderContext
         ) as auth_context,
@@ -141,10 +151,12 @@ async def prepare_rest_app(*, config: Config) -> AsyncGenerator[FastAPI, None]:
 
 @asynccontextmanager
 async def prepare_event_subscriber(
-    *, config: Config
+    *,
+    config: Config,
+    prep_core_deps: CoreDependencyResolver = prepare_core_dependencies,
 ) -> AsyncGenerator[KafkaEventSubscriber, None]:
     """Construct and initialize an event subscriber with all its dependencies."""
-    async with prepare_core_dependencies(config=config) as core_dependencies:
+    async with prep_core_deps(config=config) as core_dependencies:
         event_sub_translator = EventSubTranslator(
             data_repository=core_dependencies.data_repository,
             config=config,
@@ -158,8 +170,10 @@ async def prepare_event_subscriber(
 
 @asynccontextmanager
 async def prepare_outbox_cleaner(
-    *, config: Config
-) -> AsyncGenerator[Callable[[], Coroutine[None, None, None]], None]:
+    *,
+    config: Config,
+    prep_core_deps: CoreDependencyResolver = prepare_core_dependencies,
+) -> AsyncGenerator[OutboxCleaner, None]:
     """Construct and initialize a coroutine that cleans the outbox once invoked."""
     async with prepare_core_dependencies(config=config) as core_dependencies:
         yield core_dependencies.data_repository.cleanup_outbox

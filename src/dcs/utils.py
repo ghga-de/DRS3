@@ -16,6 +16,28 @@
 
 """Utils to be moved to the ghga-service-commons."""
 
+from contextlib import AbstractAsyncContextManager
+from typing import Generic, Protocol, TypeVar
+
+from pydantic import BaseSettings
+
+Dependency_co = TypeVar("Dependency_co", covariant=True)
+Config_contra = TypeVar("Config_contra", bound=BaseSettings, contravariant=True)
+
+
+class DependencyResolver(Protocol, Generic[Config_contra, Dependency_co]):
+    """A duck type for a context manager that resolves dependencies.
+    The first parameter refers to a pydantic.BaseSettings class that is used to
+    configure the dependency resolver. The second parameter refers to the class
+    containing resolved dependencies.
+    """
+
+    def __call__(
+        self, *, config: Config_contra
+    ) -> AbstractAsyncContextManager[Dependency_co]:
+        """Resolve core dependencies."""
+        ...
+
 
 class DependencyDummy:
     """A placeholder for a dependency that is injected at runtime into a FastAPI app.
