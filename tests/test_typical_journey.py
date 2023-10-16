@@ -172,7 +172,7 @@ async def test_happy_deletion(
     )
     await joint_fixture.s3.populate_file_objects(file_objects=[file_object])
 
-    data_repository = joint_fixture.core_dependencies.data_repository
+    data_repository = joint_fixture.data_repository
 
     # request a stage to the outbox:
     async with joint_fixture.kafka.expect_events(
@@ -197,7 +197,7 @@ async def test_happy_deletion(
 @pytest.mark.asyncio
 async def test_cleanup(cleanup_fixture: CleanupFixture):
     """Test outbox cleanup handling"""
-    data_repository = cleanup_fixture.joint_fixture.core_dependencies.data_repository
+    data_repository = cleanup_fixture.joint_fixture.data_repository
     await data_repository.cleanup_outbox()
 
     # check if object within threshold is still there

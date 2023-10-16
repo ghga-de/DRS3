@@ -17,15 +17,11 @@
 
 from collections.abc import AsyncGenerator, Coroutine
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Optional
 
 from fastapi import FastAPI
 from ghga_service_commons.api import configure_app
 from ghga_service_commons.auth.jwt_auth import JWTAuthContextProvider
-from hexkit.protocols.dao import DaoFactoryProtocol
-from hexkit.protocols.eventpub import EventPublisherProtocol
-from hexkit.protocols.objstorage import ObjectStorageProtocol
 from hexkit.providers.akafka import KafkaEventPublisher, KafkaEventSubscriber
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from typing_extensions import TypeAlias
@@ -41,71 +37,31 @@ from dcs.config import Config
 from dcs.core.auth_policies import WorkOrderContext
 from dcs.core.data_repository import DataRepository
 from dcs.ports.inbound.data_repository import DataRepositoryPort
-from dcs.ports.outbound.dao import DrsObjectDaoPort
-from dcs.ports.outbound.event_pub import EventPublisherPort
-from dcs.utils import DependencyResolver
-
-
-@dataclass
-class CoreDependencies:
-    """DI Container for the core application and outbound adapters.
-    Inbound adapters are managed separately.
-
-    Instances of this class are returned from the dependency resolution process.
-    They contain initialized resources but not the construction logic.
-    """
-
-    config: Config
-
-    # outbound providers:
-    dao_factory: DaoFactoryProtocol
-    event_pub_provider: EventPublisherProtocol
-
-    # outbound translators:
-    drs_object_dao: DrsObjectDaoPort
-    event_publisher: EventPublisherPort
-
-    # outbound adapters (not following the triple hexagonal translator/provider):
-    object_storage: ObjectStorageProtocol
-
-    # domain/core components:
-    data_repository: DataRepositoryPort
+from dcs.utils import asyncnullcontext
 
 
 @asynccontextmanager
-async def prepare_core_dependencies(
-    *, config: Config
-) -> AsyncGenerator[CoreDependencies, None]:
+async def prepare_core(*, config: Config) -> AsyncGenerator[DataRepositoryPort, None]:
     """Constructs and initializes all core components and their outbound dependencies.
     This is a context manager returns a container with all initialized resources upon
     __enter__. The resources are teared down upon __exit__.
 
     """
+    dao_factory = MongoDbDaoFactory(config=config)
+    drs_object_dao = await DrsObjectDaoConstructor.construct(dao_factory=dao_factory)
+    object_storage = S3ObjectStorage(config=config)
+
     async with KafkaEventPublisher.construct(config=config) as event_pub_provider:
-        dao_factory = MongoDbDaoFactory(config=config)
-        drs_object_dao = await DrsObjectDaoConstructor.construct(
-            dao_factory=dao_factory
-        )
         event_publisher = EventPubTranslator(config=config, provider=event_pub_provider)
-        object_storage = S3ObjectStorage(config=config)
-        data_repository = DataRepository(
+
+        yield DataRepository(
             drs_object_dao=drs_object_dao,
             object_storage=object_storage,
             event_publisher=event_publisher,
             config=config,
         )
-        yield CoreDependencies(
-            config=config,
-            dao_factory=dao_factory,
-            event_pub_provider=event_pub_provider,
-            drs_object_dao=drs_object_dao,
-            event_publisher=event_publisher,
-            object_storage=object_storage,
-            data_repository=data_repository,
-        )
 
 
-CoreDependencyResolver: TypeAlias = DependencyResolver[Config, CoreDependencies]
 OutboxCleaner: TypeAlias = Callable[[], Coroutine[None, None, None]]
 
 
@@ -131,21 +87,28 @@ def get_configured_rest_app(*, config: Config) -> FastAPI:
 async def prepare_rest_app(
     *,
     config: Config,
-    prep_core_deps: CoreDependencyResolver = prepare_core_dependencies,
+    data_repo_override: Optional[DataRepositoryPort] = None,
 ) -> AsyncGenerator[FastAPI, None]:
-    """Construct and initialize an REST API app along with all its dependencies."""
+    """Construct and initialize an REST API app along with all its dependencies.
+    By default, the core dependencies are automatically prepared but you can also
+    provide them using the data_repo_override parameter.
+    """
     app = get_configured_rest_app(config=config)
 
+    data_repository_cm = (
+        asyncnullcontext(data_repo_override)
+        if data_repo_override
+        else prepare_core(config=config)
+    )
+
     async with (
-        prep_core_deps(config=config) as core_dependencies,
+        data_repository_cm as data_repository,
         JWTAuthContextProvider.construct(
             config=config, context_class=WorkOrderContext
         ) as auth_context,
     ):
         app.dependency_overrides[dummies.auth_provider] = lambda: auth_context
-        app.dependency_overrides[
-            dummies.data_repo_port
-        ] = lambda: core_dependencies.data_repository
+        app.dependency_overrides[dummies.data_repo_port] = lambda: data_repository
         yield app
 
 
@@ -153,12 +116,21 @@ async def prepare_rest_app(
 async def prepare_event_subscriber(
     *,
     config: Config,
-    prep_core_deps: CoreDependencyResolver = prepare_core_dependencies,
+    data_repo_override: Optional[DataRepositoryPort] = None,
 ) -> AsyncGenerator[KafkaEventSubscriber, None]:
-    """Construct and initialize an event subscriber with all its dependencies."""
-    async with prep_core_deps(config=config) as core_dependencies:
+    """Construct and initialize an event subscriber with all its dependencies.
+    By default, the core dependencies are automatically prepared but you can also
+    provide them using the data_repo_override parameter.
+    """
+    data_repository_cm = (
+        asyncnullcontext(data_repo_override)
+        if data_repo_override
+        else prepare_core(config=config)
+    )
+
+    async with data_repository_cm as data_repository:
         event_sub_translator = EventSubTranslator(
-            data_repository=core_dependencies.data_repository,
+            data_repository=data_repository,
             config=config,
         )
 
@@ -172,8 +144,17 @@ async def prepare_event_subscriber(
 async def prepare_outbox_cleaner(
     *,
     config: Config,
-    prep_core_deps: CoreDependencyResolver = prepare_core_dependencies,
+    data_repo_override: Optional[DataRepositoryPort] = None,
 ) -> AsyncGenerator[OutboxCleaner, None]:
-    """Construct and initialize a coroutine that cleans the outbox once invoked."""
-    async with prepare_core_dependencies(config=config) as core_dependencies:
-        yield core_dependencies.data_repository.cleanup_outbox
+    """Construct and initialize a coroutine that cleans the outbox once invoked.
+    By default, the core dependencies are automatically prepared but you can also
+    provide them using the data_repo_override parameter.
+    """
+    data_repository_cm = (
+        asyncnullcontext(data_repo_override)
+        if data_repo_override
+        else prepare_core(config=config)
+    )
+
+    async with data_repository_cm as data_repository:
+        yield data_repository.cleanup_outbox

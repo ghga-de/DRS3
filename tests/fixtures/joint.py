@@ -31,7 +31,6 @@ __all__ = [
 
 import json
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -52,16 +51,17 @@ from hexkit.providers.s3.testutils import (
 from jwcrypto.jwk import JWK
 from pydantic import BaseSettings
 
+from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
 from dcs.config import Config, WorkOrderTokenConfig
 from dcs.core import models
 from dcs.inject import (
-    CoreDependencies,
     OutboxCleaner,
-    prepare_core_dependencies,
+    prepare_core,
     prepare_event_subscriber,
     prepare_outbox_cleaner,
     prepare_rest_app,
 )
+from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests.fixtures.config import get_config
 from tests.fixtures.utils import generate_token_signing_keys, generate_work_order_token
@@ -88,7 +88,7 @@ class JointFixture:
     """Returned by the `joint_fixture`."""
 
     config: Config
-    core_dependencies: CoreDependencies
+    data_repository: DataRepositoryPort
     rest_client: httpx.AsyncClient
     event_subscriber: KafkaEventSubscriber
     outbox_cleaner: OutboxCleaner
@@ -123,28 +123,20 @@ async def joint_fixture(
     # create storage entities:
     await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
 
-    async with prepare_core_dependencies(config=config) as core_dependencies:
-        # create an alternative CoreDependencyResolver that always return the current
-        # core_dependencies:
-        @asynccontextmanager
-        async def get_core_deps(
-            *, config: Config
-        ) -> AsyncGenerator[CoreDependencies, None]:
-            yield core_dependencies
-
+    async with prepare_core(config=config) as data_repository:
         async with (
-            prepare_rest_app(config=config, prep_core_deps=get_core_deps) as app,
+            prepare_rest_app(config=config, data_repo_override=data_repository) as app,
             prepare_event_subscriber(
-                config=config, prep_core_deps=get_core_deps
+                config=config, data_repo_override=data_repository
             ) as event_subscriber,
             prepare_outbox_cleaner(
-                config=config, prep_core_deps=get_core_deps
+                config=config, data_repo_override=data_repository
             ) as outbox_cleaner,
         ):
             async with AsyncTestClient(app=app) as rest_client:
                 yield JointFixture(
                     config=config,
-                    core_dependencies=core_dependencies,
+                    data_repository=data_repository,
                     rest_client=rest_client,
                     event_subscriber=event_subscriber,
                     outbox_cleaner=outbox_cleaner,
@@ -210,7 +202,9 @@ async def populated_fixture(
     assert file_registered_event.upload_date == EXAMPLE_FILE.creation_date
 
     # get the object id that was generated upon event consumption
-    dao = joint_fixture.core_dependencies.drs_object_dao
+    dao = await DrsObjectDaoConstructor.construct(
+        dao_factory=joint_fixture.mongodb.dao_factory
+    )
     drs_object = await dao.get_by_id(EXAMPLE_FILE.file_id)
     object_id = drs_object.object_id
 
