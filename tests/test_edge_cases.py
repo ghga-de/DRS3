@@ -19,7 +19,7 @@ import pytest
 from fastapi import status
 
 from dcs.config import WorkOrderTokenConfig
-from dcs.container import auth_provider
+from dcs.inject import auth_provider
 from tests.fixtures.joint import *  # noqa: F403
 
 

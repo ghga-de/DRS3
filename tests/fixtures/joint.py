@@ -51,8 +51,8 @@ from hexkit.providers.s3.testutils import (
 from pydantic import BaseSettings
 
 from dcs.config import Config, WorkOrderTokenConfig
-from dcs.container import Container, auth_provider
 from dcs.core import auth_policies, models
+from dcs.inject import Container, auth_provider
 from dcs.main import get_configured_container, get_rest_api
 from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests.fixtures.config import get_config
