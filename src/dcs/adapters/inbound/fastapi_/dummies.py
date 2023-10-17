@@ -15,7 +15,7 @@
 #
 
 """A collection of dependency dummies that are used in view definitions but need to be
-replaces at runtime by actual dependencies.
+replaced at runtime by actual dependencies.
 """
 
 
