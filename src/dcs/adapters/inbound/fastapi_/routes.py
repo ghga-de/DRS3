@@ -16,18 +16,17 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, status
 
 from dcs.adapters.inbound.fastapi_ import (
-    dummies,
     http_authorization,
     http_exceptions,
     http_response_models,
     http_responses,
 )
+from dcs.adapters.inbound.fastapi_.dummies import DataRepositoryDummy
 from dcs.core.auth_policies import WorkOrderContext
 from dcs.core.models import DrsObjectResponseModel
-from dcs.ports.inbound.data_repository import DataRepositoryPort
 
 router = APIRouter()
 
@@ -101,7 +100,7 @@ async def health():
 )
 async def get_drs_object(
     object_id: str,
-    data_repository: Annotated[DataRepositoryPort, Depends(dummies.data_repo_port)],
+    data_repository: DataRepositoryDummy,
     work_order_context: Annotated[
         WorkOrderContext, http_authorization.require_work_order_context
     ],
@@ -148,7 +147,7 @@ async def get_envelope(
     work_order_context: Annotated[
         WorkOrderContext, http_authorization.require_work_order_context
     ],
-    data_repository: Annotated[DataRepositoryPort, Depends(dummies.data_repo_port)],
+    data_repository: DataRepositoryDummy,
 ):
     """
     Retrieve the base64 encoded envelope for a given object based on object id and

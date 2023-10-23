@@ -18,8 +18,14 @@
 replaced at runtime by actual dependencies.
 """
 
+from typing import Annotated
 
+from fastapi import Depends
+
+from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.utils import DependencyDummy
 
 data_repo_port = DependencyDummy("data_repo_port")
 auth_provider = DependencyDummy("auth_provider")
+
+DataRepositoryDummy = Annotated[DataRepositoryPort, Depends(data_repo_port)]
