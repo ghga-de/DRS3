@@ -49,7 +49,7 @@ from hexkit.providers.s3.testutils import (
     temp_file_object,
 )
 from jwcrypto.jwk import JWK
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
 from dcs.config import Config, WorkOrderTokenConfig
