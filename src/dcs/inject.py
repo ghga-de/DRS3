@@ -21,6 +21,7 @@ from typing import Callable, Optional
 
 from fastapi import FastAPI
 from ghga_service_commons.auth.jwt_auth import JWTAuthContextProvider
+from ghga_service_commons.utils.context import asyncnullcontext
 from hexkit.providers.akafka import KafkaEventPublisher, KafkaEventSubscriber
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from typing_extensions import TypeAlias
@@ -35,7 +36,6 @@ from dcs.config import Config
 from dcs.core.auth_policies import WorkOrderContext
 from dcs.core.data_repository import DataRepository
 from dcs.ports.inbound.data_repository import DataRepositoryPort
-from dcs.utils import asyncnullcontext
 
 
 @asynccontextmanager
