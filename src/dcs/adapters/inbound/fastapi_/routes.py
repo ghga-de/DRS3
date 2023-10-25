@@ -16,17 +16,18 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 
 from dcs.adapters.inbound.fastapi_ import (
+    dummies,
     http_authorization,
     http_exceptions,
     http_response_models,
     http_responses,
 )
-from dcs.adapters.inbound.fastapi_.dummies import DataRepositoryDummy
 from dcs.core.auth_policies import WorkOrderContext
 from dcs.core.models import DrsObjectResponseModel
+from dcs.ports.inbound.data_repository import DataRepositoryPort
 
 router = APIRouter()
 
@@ -38,14 +39,7 @@ RESPONSES = {
             + "\n- envelopeNotFoundError: The requested envelope could not be retrieved"
             + "\n- noSuchObject: The requested DrsObject was not found"
         ),
-        "model": http_response_models.EnvelopeEndpointErrorModel,
-    },
-    "externalAPIError": {
-        "description": (
-            "Exceptions by ID:"
-            + "\n- externalAPIError: Communication with a service external API failed"
-        ),
-        "model": http_response_models.ExternalAPIErrorModel,
+        "model": http_exceptions.HttpObjectNotFoundError.get_body_model(),
     },
     "noSuchObject": {
         "description": (
@@ -100,7 +94,7 @@ async def health():
 )
 async def get_drs_object(
     object_id: str,
-    data_repository: DataRepositoryDummy,
+    data_repository: Annotated[DataRepositoryPort, Depends(dummies.data_repo_port)],
     work_order_context: Annotated[
         WorkOrderContext, http_authorization.require_work_order_context
     ],
@@ -139,7 +133,6 @@ async def get_drs_object(
     responses={
         status.HTTP_403_FORBIDDEN: RESPONSES["wrongFileAuthorizationError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["entryNotFoundError"],
-        status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["externalAPIError"],
     },
 )
 async def get_envelope(
@@ -147,7 +140,7 @@ async def get_envelope(
     work_order_context: Annotated[
         WorkOrderContext, http_authorization.require_work_order_context
     ],
-    data_repository: DataRepositoryDummy,
+    data_repository: Annotated[DataRepositoryPort, Depends(dummies.data_repo_port)],
 ):
     """
     Retrieve the base64 encoded envelope for a given object based on object id and
@@ -163,10 +156,6 @@ async def get_envelope(
         envelope = await data_repository.serve_envelope(
             drs_id=object_id, public_key=public_key
         )
-    except data_repository.APICommunicationError as external_api_error:
-        raise http_exceptions.HttpExternalAPIError(
-            description=str(external_api_error)
-        ) from external_api_error
     except data_repository.DrsObjectNotFoundError as object_not_found_error:
         raise http_exceptions.HttpObjectNotFoundError(
             object_id=object_id
