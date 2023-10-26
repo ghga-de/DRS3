@@ -110,6 +110,7 @@ class EventPubTranslator(EventPublisherPort):
         auditing purposes.
         """
         payload = event_schemas.FileDownloadServed(
+            s3_endpoint_alias="test",
             file_id=drs_object.file_id,
             target_object_id=drs_object.object_id,
             target_bucket_id=target_bucket_id,
@@ -135,6 +136,7 @@ class EventPubTranslator(EventPublisherPort):
         is not yet available in the outbox.
         """
         payload = event_schemas.NonStagedFileRequested(
+            s3_endpoint_alias="test",
             file_id=drs_object.file_id,
             target_object_id=drs_object.object_id,
             target_bucket_id=target_bucket_id,

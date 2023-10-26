@@ -72,7 +72,6 @@ def prepare_core_with_override(
     )
 
 
-
 @asynccontextmanager
 async def prepare_rest_app(
     *,
@@ -89,7 +88,6 @@ async def prepare_rest_app(
         prepare_core_with_override(
             config=config, data_repo_override=data_repo_override
         ) as data_repository,
-
         JWTAuthContextProvider.construct(
             config=config, context_class=WorkOrderContext
         ) as auth_context,
