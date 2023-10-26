@@ -18,17 +18,10 @@ in the api.
 """
 
 import re
-
-from pydantic import field_validator
-
-try:  # workaround for https://github.com/pydantic/pydantic/issues/5821
-    from typing_extensions import Literal
-except ImportError:
-    from typing import Literal  # type: ignore
-
+from typing import Literal
 
 from ghga_service_commons.utils import utc_dates
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class AccessURL(BaseModel):
