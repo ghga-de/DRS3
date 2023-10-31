@@ -178,7 +178,7 @@ async def populated_fixture(
         decryption_secret_id="some-secret",
     )
     await joint_fixture.kafka.publish_event(
-        payload=json.loads(files_to_register_event.json()),
+        payload=json.loads(files_to_register_event.model_dump_json()),
         type_=joint_fixture.config.files_to_register_type,
         topic=joint_fixture.config.files_to_register_topic,
     )

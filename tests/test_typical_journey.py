@@ -79,7 +79,7 @@ async def test_happy_journey(
     async with joint_fixture.kafka.expect_events(
         events=[
             ExpectedEvent(
-                payload=json.loads(non_staged_requested_event.json()),
+                payload=json.loads(non_staged_requested_event.model_dump_json()),
                 type_=joint_fixture.config.unstaged_download_event_type,
             )
         ],
@@ -115,7 +115,7 @@ async def test_happy_journey(
     async with joint_fixture.kafka.expect_events(
         events=[
             ExpectedEvent(
-                payload=json.loads(download_served_event.json()),
+                payload=json.loads(download_served_event.model_dump_json()),
                 type_=joint_fixture.config.download_served_event_type,
             )
         ],

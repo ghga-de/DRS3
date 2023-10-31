@@ -107,7 +107,7 @@ class DataRepository(DataRepositoryPort):
     ) -> models.DrsObjectWithUri:
         """Add the DRS self URI to an DRS object."""
         return models.DrsObjectWithUri(
-            **drs_object.dict(),
+            **drs_object.model_dump(),
             self_uri=self._get_drs_uri(drs_id=drs_object.file_id),
         )
 
@@ -122,7 +122,7 @@ class DataRepository(DataRepositoryPort):
         )
 
         return models.DrsObjectWithAccess(
-            **drs_object.dict(),
+            **drs_object.model_dump(),
             self_uri=self._get_drs_uri(drs_id=drs_object.file_id),
             access_url=access_url,
         )
@@ -221,10 +221,10 @@ class DataRepository(DataRepositoryPort):
     async def register_new_file(self, *, file: models.DrsObjectBase):
         """Register a file as a new DRS Object."""
         object_id = str(uuid.uuid4())
-        drs_object = models.DrsObject(**file.dict(), object_id=object_id)
+        drs_object = models.DrsObject(**file.model_dump(), object_id=object_id)
 
         file_with_access_time = models.AccessTimeDrsObject(
-            **drs_object.dict(),
+            **drs_object.model_dump(),
             last_accessed=utc_dates.now_as_utc(),
         )
         # write file entry to database

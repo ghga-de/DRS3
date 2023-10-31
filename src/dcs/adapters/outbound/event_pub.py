@@ -117,7 +117,7 @@ class EventPubTranslator(EventPublisherPort):
             decrypted_sha256=drs_object.decrypted_sha256,
             context="unknown",
         )
-        payload_dict = json.loads(payload.json())
+        payload_dict = json.loads(payload.model_dump_json())
 
         await self._provider.publish(
             payload=payload_dict,
@@ -142,7 +142,7 @@ class EventPubTranslator(EventPublisherPort):
             target_bucket_id=target_bucket_id,
             decrypted_sha256=drs_object.decrypted_sha256,
         )
-        payload_dict = json.loads(payload.json())
+        payload_dict = json.loads(payload.model_dump_json())
 
         await self._provider.publish(
             payload=payload_dict,
@@ -159,7 +159,7 @@ class EventPubTranslator(EventPublisherPort):
             upload_date=drs_object.creation_date,
             drs_uri=drs_object.self_uri,
         )
-        payload_dict = json.loads(payload.json())
+        payload_dict = json.loads(payload.model_dump_json())
 
         await self._provider.publish(
             payload=payload_dict,
@@ -173,7 +173,7 @@ class EventPubTranslator(EventPublisherPort):
         payload = event_schemas.FileDeletionSuccess(
             file_id=file_id,
         )
-        payload_dict = json.loads(payload.json())
+        payload_dict = json.loads(payload.model_dump_json())
 
         await self._provider.publish(
             payload=payload_dict,
