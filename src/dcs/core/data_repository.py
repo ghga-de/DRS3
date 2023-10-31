@@ -140,7 +140,7 @@ class DataRepository(DataRepositoryPort):
             raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
 
         drs_object = models.DrsObject(
-            **drs_object_with_access_time.dict(exclude={"last_accessed"})
+            **drs_object_with_access_time.model_dump(exclude={"last_accessed"})
         )
 
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
@@ -271,19 +271,19 @@ class DataRepository(DataRepositoryPort):
         Args:
             file_id: id for the file to delete.
         """
-        # Get secret_id, call EKSS to remove file secret from vault
+        # Get drs object from db
         try:
             drs_object = await self._drs_object_dao.get_by_id(id_=file_id)
+        except ResourceNotFoundError:
+            # If the db entry does not exist, we are done, as it is deleted last
+            return
+
+        # call EKSS to remove file secret from vault
+        with contextlib.suppress(exceptions.SecretNotFoundError):
             delete_secret_from_ekss(
                 secret_id=drs_object.decryption_secret_id,
                 api_base=self._config.ekss_base_url,
             )
-        except (
-            exceptions.SecretNotFoundError,
-            self._object_storage.ObjectNotFoundError,
-        ):
-            # If the secret does not exist, we are done
-            pass
 
         # Try to remove file from S3
         with contextlib.suppress(self._object_storage.ObjectNotFoundError):
@@ -291,8 +291,7 @@ class DataRepository(DataRepositoryPort):
                 bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
             )
 
-        # Try to remove file from database
-        with contextlib.suppress(ResourceNotFoundError):
-            await self._drs_object_dao.delete(id_=file_id)
-
+        # Remove file from database and send success event
+        # Should not fail as we got the DRS object by the same ID
+        await self._drs_object_dao.delete(id_=file_id)
         await self._event_publisher.file_deleted(file_id=file_id)
