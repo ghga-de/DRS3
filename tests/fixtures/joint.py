@@ -54,6 +54,7 @@ from pydantic_settings import BaseSettings
 from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
 from dcs.config import Config, WorkOrderTokenConfig
 from dcs.core import models
+from dcs.core.data_repository import ObjectStorageConfig, ObjectStorageNodeConfig
 from dcs.inject import (
     OutboxCleaner,
     prepare_core,
@@ -73,6 +74,7 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
     creation_date=datetime.now().isoformat(),
     decrypted_size=12345,
     decryption_secret_id="some-secret",
+    s3_endpoint_alias="test",
     last_accessed=utc_dates.now_as_utc(),
 )
 
@@ -110,9 +112,13 @@ async def joint_fixture(
     auth_config = WorkOrderTokenConfig(auth_key=auth_key)
     ekss_config = EKSSBaseInjector(ekss_base_url="http://ekss")
 
+    node_config = ObjectStorageNodeConfig(bucket="test", credentials=s3_fixture.config)
+    object_storage_config = ObjectStorageConfig(object_storages={"test": node_config})
+
     config = get_config(
         sources=[
             mongodb_fixture.config,
+            object_storage_config,
             s3_fixture.config,
             kafka_fixture.config,
             ekss_config,

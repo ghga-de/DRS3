@@ -21,13 +21,12 @@ from ghga_service_commons.auth.ghga import AuthConfig
 from hexkit.config import config_from_yaml
 from hexkit.providers.akafka import KafkaConfig
 from hexkit.providers.mongodb import MongoDbConfig
-from hexkit.providers.s3 import S3Config
 from pydantic import Field
 
 from dcs.adapters.inbound.event_sub import EventSubTranslatorConfig
 from dcs.adapters.inbound.fastapi_.configure import DrsApiConfig
 from dcs.adapters.outbound.event_pub import EventPubTranslatorConfig
-from dcs.core.data_repository import DataRepositoryConfig
+from dcs.core.data_repository import DataRepositoryConfig, ObjectStorageConfig
 
 
 class WorkOrderTokenConfig(AuthConfig):
@@ -45,12 +44,12 @@ class WorkOrderTokenConfig(AuthConfig):
 class Config(
     DrsApiConfig,
     WorkOrderTokenConfig,
-    S3Config,
     DataRepositoryConfig,
     MongoDbConfig,
     KafkaConfig,
     EventPubTranslatorConfig,
     EventSubTranslatorConfig,
+    ObjectStorageConfig,
 ):
     """Config parameters and their defaults."""
 

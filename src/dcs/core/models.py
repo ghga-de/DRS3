@@ -58,6 +58,7 @@ class DrsObject(DrsObjectBase):
     """A DrsObjectBase with the object_id generated"""
 
     object_id: str
+    s3_endpoint_alias: str
 
 
 class AccessTimeDrsObject(DrsObject):

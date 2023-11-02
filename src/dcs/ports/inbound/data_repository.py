@@ -90,7 +90,7 @@ class DataRepositoryPort(ABC):
         ...
 
     @abstractmethod
-    async def cleanup_outbox(self):
+    async def cleanup_outbox(self, *, s3_endpoint_alias: str):
         """
         Check if files present in the outbox have outlived their allocated time and remove
         all that do.
@@ -101,7 +101,9 @@ class DataRepositoryPort(ABC):
         ...
 
     @abstractmethod
-    async def register_new_file(self, *, file: models.DrsObjectBase):
+    async def register_new_file(
+        self, *, file: models.DrsObjectBase, s3_endpoint_alias: str
+    ):
         """Register a file as a new DRS Object."""
         ...
 

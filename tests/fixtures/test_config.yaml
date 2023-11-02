@@ -10,10 +10,13 @@ outbox_bucket: test-outbox
 port: 8080
 retry_access_after: 120
 presigned_url_expires_after: 30
-s3_access_key_id: test
-s3_endpoint_url: http://localhost:4566
-s3_secret_access_key: test
-s3_session_token: test
+object_storages:
+  test:
+    bucket: outbox
+    credentials:
+      s3_endpoint_url: http://dcs:4566
+      s3_access_key_id: test
+      s3_secret_access_key: test
 service_name: dcs
 db_connection_str: "mongodb://mongodb:27017"
 db_name: "dev_db"

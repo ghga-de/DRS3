@@ -104,13 +104,17 @@ class EventPubTranslator(EventPublisherPort):
         self._provider = provider
 
     async def download_served(
-        self, *, drs_object: models.DrsObjectWithUri, target_bucket_id: str
+        self,
+        *,
+        drs_object: models.DrsObjectWithUri,
+        s3_endpoint_alias: str,
+        target_bucket_id: str,
     ) -> None:
         """Communicate the event of a download being served. This can be relevant for
         auditing purposes.
         """
         payload = event_schemas.FileDownloadServed(
-            s3_endpoint_alias="test",
+            s3_endpoint_alias=s3_endpoint_alias,
             file_id=drs_object.file_id,
             target_object_id=drs_object.object_id,
             target_bucket_id=target_bucket_id,
@@ -130,6 +134,7 @@ class EventPubTranslator(EventPublisherPort):
         self,
         *,
         drs_object: models.DrsObjectWithUri,
+        s3_endpoint_alias: str,
         target_bucket_id: str,
     ) -> None:
         """Communicates the event that a download was requested for a file that
@@ -140,6 +145,7 @@ class EventPubTranslator(EventPublisherPort):
             file_id=drs_object.file_id,
             target_object_id=drs_object.object_id,
             target_bucket_id=target_bucket_id,
+            s3_endpoint_alias=s3_endpoint_alias,
             decrypted_sha256=drs_object.decrypted_sha256,
         )
         payload_dict = json.loads(payload.json())
