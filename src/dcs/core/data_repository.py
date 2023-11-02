@@ -21,7 +21,7 @@ import uuid
 from datetime import timedelta
 
 from ghga_service_commons.utils import utc_dates
-from hexkit.providers.s3 import S3Config
+from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
 from pydantic import Field, PositiveInt, field_validator
 from pydantic_settings import BaseSettings
 
@@ -30,7 +30,6 @@ from dcs.adapters.outbound.http.api_calls import (
     delete_secret_from_ekss,
     get_envelope_from_ekss,
 )
-from dcs.adapters.outbound.s3 import S3ObjectStorage
 from dcs.core import models
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 from dcs.ports.outbound.dao import DrsObjectDaoPort, ResourceNotFoundError
@@ -40,7 +39,6 @@ from dcs.ports.outbound.event_pub import EventPublisherPort
 class DataRepositoryConfig(BaseSettings):
     """Config parameters needed for the DataRepository."""
 
-    outbox_bucket: str
     drs_server_uri: str = Field(
         ...,
         description="The base of the DRS URI to access DRS objects. Has to start with 'drs://'"
@@ -82,40 +80,6 @@ class DataRepositoryConfig(BaseSettings):
         return value
 
 
-class ObjectStorageNodeConfig(BaseSettings):
-    """Configuration for one specific object storage node"""
-
-    bucket: str
-    credentials: S3Config
-
-
-class ObjectStorageConfig(BaseSettings):
-    """Configuration for all available object storage nodes"""
-
-    object_storages: dict[str, ObjectStorageNodeConfig]
-
-
-class ObjectStorages:
-    """Constructor to instantiate multiple object storage objects from config"""
-
-    def __init__(self, *, config: ObjectStorageConfig) -> None:
-        self._config = config
-        self.object_storages: dict[str, S3ObjectStorage] = {}
-
-    def __getitem__(self, key):
-        """It's some kind of magic"""
-        if not self.object_storages:
-            self._create_object_storages()
-        return self.object_storages[key]
-
-    def _create_object_storages(self):
-        """Create object storage instances from config"""
-        for node_label, node_config in self._config.object_storages.items():
-            self.object_storages[node_label] = S3ObjectStorage(
-                config=node_config.credentials
-            )
-
-
 class DataRepository(DataRepositoryPort):
     """A service that manages a registry of DRS objects."""
 
@@ -124,7 +88,7 @@ class DataRepository(DataRepositoryPort):
         *,
         config: DataRepositoryConfig,
         drs_object_dao: DrsObjectDaoPort,
-        object_storages: ObjectStorages,
+        object_storages: S3ObjectStorages,
         event_publisher: EventPublisherPort,
     ):
         """Initialize with essential config params and outbound adapters."""
@@ -142,7 +106,7 @@ class DataRepository(DataRepositoryPort):
     ) -> models.DrsObjectWithUri:
         """Add the DRS self URI to an DRS object."""
         return models.DrsObjectWithUri(
-            **drs_object.dict(),
+            **drs_object.model_dump(),
             self_uri=self._get_drs_uri(drs_id=drs_object.file_id),
         )
 
@@ -150,15 +114,15 @@ class DataRepository(DataRepositoryPort):
         self, *, drs_object: models.DrsObject, s3_endpoint_alias: str
     ) -> models.DrsObjectWithAccess:
         """Get a DRS Object model with access information."""
-        object_storage = self._object_storages[s3_endpoint_alias]
+        bucket_id, object_storage = self._object_storages.for_alias(s3_endpoint_alias)
         access_url = await object_storage.get_object_download_url(
-            bucket_id=self._config.outbox_bucket,
+            bucket_id=bucket_id,
             object_id=drs_object.object_id,
             expires_after=self._config.presigned_url_expires_after,
         )
 
         return models.DrsObjectWithAccess(
-            **drs_object.dict(),
+            **drs_object.model_dump(),
             self_uri=self._get_drs_uri(drs_id=drs_object.file_id),
             access_url=access_url,
         )
@@ -176,23 +140,23 @@ class DataRepository(DataRepositoryPort):
             raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
 
         drs_object = models.DrsObject(
-            **drs_object_with_access_time.dict(exclude={"last_accessed"})
+            **drs_object_with_access_time.model_dump(exclude={"last_accessed"})
         )
 
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
 
         s3_endpoint_alias = drs_object.s3_endpoint_alias
-        object_storage = self._object_storages[s3_endpoint_alias]
+        bucket_id, object_storage = self._object_storages.for_alias(s3_endpoint_alias)
 
         # check if the file corresponding to the DRS object is already in the outbox:
         if not await object_storage.does_object_exist(
-            bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
+            bucket_id=bucket_id, object_id=drs_object.object_id
         ):
             # publish an event to request a stage of the corresponding file:
             await self._event_publisher.unstaged_download_requested(
                 drs_object=drs_object_with_uri,
                 s3_endpoint_alias=s3_endpoint_alias,
-                target_bucket_id=self._config.outbox_bucket,
+                target_bucket_id=bucket_id,
             )
 
             # instruct to retry later:
@@ -215,12 +179,12 @@ class DataRepository(DataRepositoryPort):
         await self._event_publisher.download_served(
             drs_object=drs_object_with_uri,
             s3_endpoint_alias=s3_endpoint_alias,
-            target_bucket_id=self._config.outbox_bucket,
+            target_bucket_id=bucket_id,
         )
 
         # CLI needs to have the encrypted size to correctly download all file parts
         encrypted_size = await object_storage.get_object_size(
-            bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
+            bucket_id=bucket_id, object_id=drs_object.object_id
         )
         return drs_object_with_access.convert_to_drs_response_model(size=encrypted_size)
 
@@ -234,11 +198,9 @@ class DataRepository(DataRepositoryPort):
         """
         threshold = utc_dates.now_as_utc() - timedelta(days=self._config.cache_timeout)
 
-        object_storage = self._object_storages[s3_endpoint_alias]
+        bucket_id, object_storage = self._object_storages.for_alias(s3_endpoint_alias)
         # filter to get all files in outbox that should be removed
-        object_ids = await object_storage.list_all_object_ids(
-            bucket_id=self._config.outbox_bucket
-        )
+        object_ids = await object_storage.list_all_object_ids(bucket_id=bucket_id)
         for object_id in object_ids:
             try:
                 drs_object = await self._drs_object_dao.find_one(
@@ -253,7 +215,7 @@ class DataRepository(DataRepositoryPort):
             if drs_object.last_accessed <= threshold:
                 try:
                     await object_storage.delete_object(
-                        bucket_id=self._config.outbox_bucket, object_id=object_id
+                        bucket_id=bucket_id, object_id=object_id
                     )
                 except (
                     object_storage.ObjectError,
@@ -336,12 +298,14 @@ class DataRepository(DataRepositoryPort):
                 api_base=self._config.ekss_base_url,
             )
 
-        object_storage = self._object_storages[drs_object.s3_endpoint_alias]
+        bucket_id, object_storage = self._object_storages.for_alias(
+            drs_object.s3_endpoint_alias
+        )
 
         # Try to remove file from S3
         with contextlib.suppress(object_storage.ObjectNotFoundError):
             await object_storage.delete_object(
-                bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
+                bucket_id=bucket_id, object_id=drs_object.object_id
             )
 
         # Remove file from database and send success event

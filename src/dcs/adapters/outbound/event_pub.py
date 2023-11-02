@@ -121,7 +121,7 @@ class EventPubTranslator(EventPublisherPort):
             decrypted_sha256=drs_object.decrypted_sha256,
             context="unknown",
         )
-        payload_dict = json.loads(payload.json())
+        payload_dict = json.loads(payload.model_dump_json())
 
         await self._provider.publish(
             payload=payload_dict,
@@ -141,14 +141,13 @@ class EventPubTranslator(EventPublisherPort):
         is not yet available in the outbox.
         """
         payload = event_schemas.NonStagedFileRequested(
-            s3_endpoint_alias="test",
+            s3_endpoint_alias=s3_endpoint_alias,
             file_id=drs_object.file_id,
             target_object_id=drs_object.object_id,
             target_bucket_id=target_bucket_id,
-            s3_endpoint_alias=s3_endpoint_alias,
             decrypted_sha256=drs_object.decrypted_sha256,
         )
-        payload_dict = json.loads(payload.json())
+        payload_dict = json.loads(payload.model_dump_json())
 
         await self._provider.publish(
             payload=payload_dict,
@@ -165,7 +164,7 @@ class EventPubTranslator(EventPublisherPort):
             upload_date=drs_object.creation_date,
             drs_uri=drs_object.self_uri,
         )
-        payload_dict = json.loads(payload.json())
+        payload_dict = json.loads(payload.model_dump_json())
 
         await self._provider.publish(
             payload=payload_dict,
@@ -179,7 +178,7 @@ class EventPubTranslator(EventPublisherPort):
         payload = event_schemas.FileDeletionSuccess(
             file_id=file_id,
         )
-        payload_dict = json.loads(payload.json())
+        payload_dict = json.loads(payload.model_dump_json())
 
         await self._provider.publish(
             payload=payload_dict,

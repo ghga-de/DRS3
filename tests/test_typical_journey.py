@@ -69,17 +69,18 @@ async def test_happy_journey(
     # request access to the newly registered file:
     # (An check that an event is published indicating that the file is not in
     # outbox yet.)
+
     non_staged_requested_event = event_schemas.NonStagedFileRequested(
         s3_endpoint_alias="test",
         file_id=example_file.file_id,
         target_object_id=object_id,
-        target_bucket_id=joint_fixture.config.outbox_bucket,
+        target_bucket_id=joint_fixture.bucket_id,
         decrypted_sha256=example_file.decrypted_sha256,
     )
     async with joint_fixture.kafka.expect_events(
         events=[
             ExpectedEvent(
-                payload=json.loads(non_staged_requested_event.json()),
+                payload=json.loads(non_staged_requested_event.model_dump_json()),
                 type_=joint_fixture.config.unstaged_download_event_type,
             )
         ],
@@ -95,7 +96,7 @@ async def test_happy_journey(
     # the file content does not match the announced decrypted_sha256 checksum):
     file_object = file_fixture.model_copy(
         update={
-            "bucket_id": joint_fixture.config.outbox_bucket,
+            "bucket_id": joint_fixture.bucket_id,
             "object_id": object_id,
         }
     )
@@ -108,14 +109,14 @@ async def test_happy_journey(
         s3_endpoint_alias="test",
         file_id=example_file.file_id,
         target_object_id=object_id,
-        target_bucket_id=joint_fixture.config.outbox_bucket,
+        target_bucket_id=joint_fixture.bucket_id,
         decrypted_sha256=example_file.decrypted_sha256,
         context="unknown",
     )
     async with joint_fixture.kafka.expect_events(
         events=[
             ExpectedEvent(
-                payload=json.loads(download_served_event.json()),
+                payload=json.loads(download_served_event.model_dump_json()),
                 type_=joint_fixture.config.download_served_event_type,
             )
         ],
@@ -166,9 +167,9 @@ async def test_happy_deletion(
     )
 
     # place example content in the outbox bucket:
-    file_object = file_fixture.copy(
+    file_object = file_fixture.model_copy(
         update={
-            "bucket_id": joint_fixture.config.outbox_bucket,
+            "bucket_id": joint_fixture.bucket_id,
             "object_id": object_id,
         }
     )
@@ -191,7 +192,7 @@ async def test_happy_deletion(
         await data_repository.delete_file(file_id=drs_id)
 
     assert not await joint_fixture.s3.storage.does_object_exist(
-        bucket_id=joint_fixture.config.outbox_bucket,
+        bucket_id=joint_fixture.bucket_id,
         object_id=object_id,
     )
 
@@ -207,7 +208,7 @@ async def test_cleanup(cleanup_fixture: CleanupFixture):
         cleanup_fixture.cached_id
     )
     assert await cleanup_fixture.joint_fixture.s3.storage.does_object_exist(
-        bucket_id=cleanup_fixture.joint_fixture.config.outbox_bucket,
+        bucket_id=cleanup_fixture.joint_fixture.bucket_id,
         object_id=cached_object.object_id,
     )
 
@@ -216,6 +217,6 @@ async def test_cleanup(cleanup_fixture: CleanupFixture):
         cleanup_fixture.expired_id
     )
     assert not await cleanup_fixture.joint_fixture.s3.storage.does_object_exist(
-        bucket_id=cleanup_fixture.joint_fixture.config.outbox_bucket,
+        bucket_id=cleanup_fixture.joint_fixture.bucket_id,
         object_id=expired_object.object_id,
     )

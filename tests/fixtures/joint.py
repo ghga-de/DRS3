@@ -39,6 +39,10 @@ import pytest_asyncio
 from ghga_event_schemas import pydantic_ as event_schemas
 from ghga_service_commons.api.testing import AsyncTestClient
 from ghga_service_commons.utils import utc_dates
+from ghga_service_commons.utils.multinode_storage import (
+    S3ObjectStorageNodeConfig,
+    S3ObjectStoragesConfig,
+)
 from hexkit.providers.akafka import KafkaEventSubscriber
 from hexkit.providers.akafka.testutils import KafkaFixture, kafka_fixture
 from hexkit.providers.mongodb.testutils import MongoDbFixture, mongodb_fixture
@@ -54,7 +58,6 @@ from pydantic_settings import BaseSettings
 from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
 from dcs.config import Config, WorkOrderTokenConfig
 from dcs.core import models
-from dcs.core.data_repository import ObjectStorageConfig, ObjectStorageNodeConfig
 from dcs.inject import (
     OutboxCleaner,
     prepare_core,
@@ -90,6 +93,7 @@ class JointFixture:
     """Returned by the `joint_fixture`."""
 
     config: Config
+    bucket_id: str
     data_repository: DataRepositoryPort
     rest_client: httpx.AsyncClient
     event_subscriber: KafkaEventSubscriber
@@ -112,14 +116,18 @@ async def joint_fixture(
     auth_config = WorkOrderTokenConfig(auth_key=auth_key)
     ekss_config = EKSSBaseInjector(ekss_base_url="http://ekss")
 
-    node_config = ObjectStorageNodeConfig(bucket="test", credentials=s3_fixture.config)
-    object_storage_config = ObjectStorageConfig(object_storages={"test": node_config})
+    bucket_id = "test"
+    node_config = S3ObjectStorageNodeConfig(
+        bucket=bucket_id, credentials=s3_fixture.config
+    )
+    object_storage_config = S3ObjectStoragesConfig(
+        object_storages={bucket_id: node_config}
+    )
 
     config = get_config(
         sources=[
             mongodb_fixture.config,
             object_storage_config,
-            s3_fixture.config,
             kafka_fixture.config,
             ekss_config,
             auth_config,
@@ -127,7 +135,7 @@ async def joint_fixture(
     )
 
     # create storage entities:
-    await s3_fixture.populate_buckets(buckets=[config.outbox_bucket])
+    await s3_fixture.populate_buckets(buckets=[bucket_id])
 
     async with prepare_core(config=config) as data_repository:
         async with (
@@ -142,6 +150,7 @@ async def joint_fixture(
             async with AsyncTestClient(app=app) as rest_client:
                 yield JointFixture(
                     config=config,
+                    bucket_id=bucket_id,
                     data_repository=data_repository,
                     rest_client=rest_client,
                     event_subscriber=event_subscriber,
@@ -173,7 +182,7 @@ async def populated_fixture(
         s3_endpoint_alias="test",  # to be changed
         file_id=EXAMPLE_FILE.file_id,
         object_id=EXAMPLE_FILE.object_id,
-        bucket_id=joint_fixture.config.outbox_bucket,
+        bucket_id=joint_fixture.bucket_id,
         upload_date=EXAMPLE_FILE.creation_date,
         decrypted_size=EXAMPLE_FILE.decrypted_size,
         decrypted_sha256=EXAMPLE_FILE.decrypted_sha256,
@@ -184,7 +193,7 @@ async def populated_fixture(
         decryption_secret_id="some-secret",
     )
     await joint_fixture.kafka.publish_event(
-        payload=json.loads(files_to_register_event.json()),
+        payload=json.loads(files_to_register_event.model_dump_json()),
         type_=joint_fixture.config.files_to_register_type,
         topic=joint_fixture.config.files_to_register_topic,
     )
@@ -274,11 +283,11 @@ async def cleanup_fixture(
 
     # populate storage
     with temp_file_object(
-        bucket_id=joint_fixture.config.outbox_bucket,
+        bucket_id=joint_fixture.bucket_id,
         object_id=test_file_cached.object_id,
     ) as cached_file:
         with temp_file_object(
-            bucket_id=joint_fixture.config.outbox_bucket,
+            bucket_id=joint_fixture.bucket_id,
             object_id=test_file_expired.object_id,
         ) as expired_file:
             await joint_fixture.s3.populate_file_objects([cached_file, expired_file])

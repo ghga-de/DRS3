@@ -22,6 +22,7 @@ from typing import Callable, Optional
 from fastapi import FastAPI
 from ghga_service_commons.auth.jwt_auth import JWTAuthContextProvider
 from ghga_service_commons.utils.context import asyncnullcontext
+from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
 from hexkit.providers.akafka import KafkaEventPublisher, KafkaEventSubscriber
 from hexkit.providers.mongodb import MongoDbDaoFactory
 from typing_extensions import TypeAlias
@@ -33,7 +34,7 @@ from dcs.adapters.outbound.dao import DrsObjectDaoConstructor
 from dcs.adapters.outbound.event_pub import EventPubTranslator
 from dcs.config import Config
 from dcs.core.auth_policies import WorkOrderContext
-from dcs.core.data_repository import DataRepository, ObjectStorages
+from dcs.core.data_repository import DataRepository
 from dcs.ports.inbound.data_repository import DataRepositoryPort
 
 
@@ -42,7 +43,7 @@ async def prepare_core(*, config: Config) -> AsyncGenerator[DataRepositoryPort, 
     """Constructs and initializes all core components and their outbound dependencies."""
     dao_factory = MongoDbDaoFactory(config=config)
     drs_object_dao = await DrsObjectDaoConstructor.construct(dao_factory=dao_factory)
-    object_storages = ObjectStorages(config=config)
+    object_storages = S3ObjectStorages(config=config)
 
     async with KafkaEventPublisher.construct(config=config) as event_pub_provider:
         event_publisher = EventPubTranslator(config=config, provider=event_pub_provider)

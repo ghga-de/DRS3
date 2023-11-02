@@ -6,13 +6,12 @@ drs_server_uri: drs://localhost:8080/
 host: 127.0.0.1
 log_level: info
 openapi_url: /openapi.json
-outbox_bucket: test-outbox
 port: 8080
 retry_access_after: 120
 presigned_url_expires_after: 30
 object_storages:
   test:
-    bucket: outbox
+    bucket: test-outbox
     credentials:
       s3_endpoint_url: http://dcs:4566
       s3_access_key_id: test
