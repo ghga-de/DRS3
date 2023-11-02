@@ -22,6 +22,7 @@ from datetime import timedelta
 
 from ghga_service_commons.utils import utc_dates
 from ghga_service_commons.utils.multinode_storage import S3ObjectStorages
+from hexkit.protocols.objstorage import ObjectStorageProtocol
 from pydantic import Field, PositiveInt, field_validator
 from pydantic_settings import BaseSettings
 
@@ -111,10 +112,13 @@ class DataRepository(DataRepositoryPort):
         )
 
     async def _get_access_model(
-        self, *, drs_object: models.DrsObject, s3_endpoint_alias: str
+        self,
+        *,
+        drs_object: models.DrsObject,
+        object_storage: ObjectStorageProtocol,
+        bucket_id: str,
     ) -> models.DrsObjectWithAccess:
         """Get a DRS Object model with access information."""
-        bucket_id, object_storage = self._object_storages.for_alias(s3_endpoint_alias)
         access_url = await object_storage.get_object_download_url(
             bucket_id=bucket_id,
             object_id=drs_object.object_id,
@@ -146,7 +150,13 @@ class DataRepository(DataRepositoryPort):
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
 
         s3_endpoint_alias = drs_object.s3_endpoint_alias
-        bucket_id, object_storage = self._object_storages.for_alias(s3_endpoint_alias)
+
+        try:
+            bucket_id, object_storage = self._object_storages.for_alias(
+                s3_endpoint_alias
+            )
+        except KeyError as exc:
+            raise self.StorageAliasNotConfiguredError(alias=s3_endpoint_alias) from exc
 
         # check if the file corresponding to the DRS object is already in the outbox:
         if not await object_storage.does_object_exist(
@@ -172,7 +182,9 @@ class DataRepository(DataRepositoryPort):
             raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
 
         drs_object_with_access = await self._get_access_model(
-            drs_object=drs_object, s3_endpoint_alias=s3_endpoint_alias
+            drs_object=drs_object,
+            object_storage=object_storage,
+            bucket_id=bucket_id,
         )
 
         # publish an event indicating the served download:
@@ -196,9 +208,16 @@ class DataRepository(DataRepositoryPort):
         to the current datetime. If the threshold configured in the cache_timeout option
         is met or exceeded, the corresponding file is removed from the outbox.
         """
+        # Run on demand through CLI, so crashing should be ok if the alias is not configured
+        try:
+            bucket_id, object_storage = self._object_storages.for_alias(
+                s3_endpoint_alias
+            )
+        except KeyError as exc:
+            raise self.StorageAliasNotConfiguredError(alias=s3_endpoint_alias) from exc
+
         threshold = utc_dates.now_as_utc() - timedelta(days=self._config.cache_timeout)
 
-        bucket_id, object_storage = self._object_storages.for_alias(s3_endpoint_alias)
         # filter to get all files in outbox that should be removed
         object_ids = await object_storage.list_all_object_ids(bucket_id=bucket_id)
         for object_id in object_ids:
@@ -289,6 +308,7 @@ class DataRepository(DataRepositoryPort):
             drs_object = await self._drs_object_dao.get_by_id(id_=file_id)
         except ResourceNotFoundError:
             # If the db entry does not exist, we are done, as it is deleted last
+            # and has already been deleted before
             return
 
         # call EKSS to remove file secret from vault
@@ -298,9 +318,14 @@ class DataRepository(DataRepositoryPort):
                 api_base=self._config.ekss_base_url,
             )
 
-        bucket_id, object_storage = self._object_storages.for_alias(
-            drs_object.s3_endpoint_alias
-        )
+        # At this point the alias is contained in the database and this is not a user
+        # error, but a configuration issue. Is crashing the REST service ok here or do we
+        # need a more graceful solution?
+        alias = drs_object.s3_endpoint_alias
+        try:
+            bucket_id, object_storage = self._object_storages.for_alias(alias)
+        except KeyError as exc:
+            raise self.StorageAliasNotConfiguredError(alias=alias) from exc
 
         # Try to remove file from S3
         with contextlib.suppress(object_storage.ObjectNotFoundError):

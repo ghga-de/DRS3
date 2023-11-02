@@ -116,12 +116,13 @@ async def joint_fixture(
     auth_config = WorkOrderTokenConfig(auth_key=auth_key)
     ekss_config = EKSSBaseInjector(ekss_base_url="http://ekss")
 
-    bucket_id = "test"
+    bucket_id = "test-outbox"
+    s3_endpoint_alias = "test"
     node_config = S3ObjectStorageNodeConfig(
         bucket=bucket_id, credentials=s3_fixture.config
     )
     object_storage_config = S3ObjectStoragesConfig(
-        object_storages={bucket_id: node_config}
+        object_storages={s3_endpoint_alias: node_config}
     )
 
     config = get_config(
@@ -144,7 +145,9 @@ async def joint_fixture(
                 config=config, data_repo_override=data_repository
             ) as event_subscriber,
             prepare_outbox_cleaner(
-                config=config, data_repo_override=data_repository
+                config=config,
+                data_repo_override=data_repository,
+                s3_endpoint_alias=s3_endpoint_alias,
             ) as outbox_cleaner,
         ):
             async with AsyncTestClient(app=app) as rest_client:

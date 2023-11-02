@@ -71,6 +71,13 @@ class DataRepositoryPort(ABC):
 
             super().__init__(message)
 
+    class StorageAliasNotConfiguredError(RuntimeError):
+        """Raised when looking up an object storage configuration by alias fails."""
+
+        def __init__(self, *, alias: str):
+            message = f"Could not find a storage configuration for alias {alias}."
+            super().__init__(message)
+
     class UnexpectedAPIResponseError(RuntimeError):
         """Raise when API call returns unexpected return code"""
 
