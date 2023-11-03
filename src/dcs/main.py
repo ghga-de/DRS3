@@ -48,4 +48,4 @@ async def run_outbox_cleanup(s3_endpoint_alias: str):
     async with prepare_outbox_cleaner(
         config=config, s3_endpoint_alias=s3_endpoint_alias
     ) as cleanup_outbox:
-        await cleanup_outbox()
+        await cleanup_outbox

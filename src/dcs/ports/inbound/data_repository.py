@@ -75,7 +75,10 @@ class DataRepositoryPort(ABC):
         """Raised when looking up an object storage configuration by alias fails."""
 
         def __init__(self, *, alias: str):
-            message = f"Could not find a storage configuration for alias {alias}."
+            message = (
+                f"Could not find a storage configuration for alias {alias}.\n"
+                + "Check íf your multi node configuration contains a corresponding entry."
+            )
             super().__init__(message)
 
     class UnexpectedAPIResponseError(RuntimeError):

@@ -17,7 +17,7 @@
 
 from collections.abc import AsyncGenerator, Coroutine
 from contextlib import asynccontextmanager
-from typing import Callable, Optional
+from typing import Any, Optional
 
 from fastapi import FastAPI
 from ghga_service_commons.auth.jwt_auth import JWTAuthContextProvider
@@ -56,7 +56,7 @@ async def prepare_core(*, config: Config) -> AsyncGenerator[DataRepositoryPort, 
         )
 
 
-OutboxCleaner: TypeAlias = Callable[[], Coroutine[None, None, None]]
+OutboxCleaner: TypeAlias = Coroutine[Any, Any, None]
 
 
 def prepare_core_with_override(

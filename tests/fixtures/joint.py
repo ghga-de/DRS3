@@ -17,7 +17,7 @@
 
 __all__ = [
     "cleanup_fixture",
-    "CleanupFixture",
+    "config_error_fixture",
     "file_fixture",
     "joint_fixture",
     "JointFixture",
@@ -95,6 +95,8 @@ class JointFixture:
     config: Config
     bucket_id: str
     data_repository: DataRepositoryPort
+    endpoint_alias_existing: str
+    endpoint_alias_fake: str
     rest_client: httpx.AsyncClient
     event_subscriber: KafkaEventSubscriber
     outbox_cleaner: OutboxCleaner
@@ -146,8 +148,8 @@ async def joint_fixture(
             ) as event_subscriber,
             prepare_outbox_cleaner(
                 config=config,
-                data_repo_override=data_repository,
                 s3_endpoint_alias=s3_endpoint_alias,
+                data_repo_override=data_repository,
             ) as outbox_cleaner,
         ):
             async with AsyncTestClient(app=app) as rest_client:
@@ -155,6 +157,8 @@ async def joint_fixture(
                     config=config,
                     bucket_id=bucket_id,
                     data_repository=data_repository,
+                    endpoint_alias_existing=s3_endpoint_alias,
+                    endpoint_alias_fake=f"{s3_endpoint_alias}_fail",
                     rest_client=rest_client,
                     event_subscriber=event_subscriber,
                     outbox_cleaner=outbox_cleaner,
@@ -248,11 +252,45 @@ async def populated_fixture(
 
 
 @dataclass
+class ConfigErrorFixture:
+    """Fixture to provide DRS DB entry with misconfigured storage alias"""
+
+    mongodb_dao: DrsObjectDaoPort
+    joint: JointFixture
+    file_id: str
+
+
+@pytest_asyncio.fixture
+async def config_error_fixture(joint_fixture: JointFixture):
+    """Set up file with unavailable storage alias"""
+    alias = joint_fixture.endpoint_alias_fake
+
+    test_file = EXAMPLE_FILE.model_copy(deep=True)
+    test_file.file_id = alias
+    test_file.object_id = alias
+    test_file.s3_endpoint_alias = alias
+
+    # populate DB entry
+    mongodb_dao = await joint_fixture.mongodb.dao_factory.get_dao(
+        name="drs_objects",
+        dto_model=models.AccessTimeDrsObject,
+        id_field="file_id",
+    )
+    await mongodb_dao.insert(test_file)
+
+    yield ConfigErrorFixture(
+        mongodb_dao=mongodb_dao,
+        joint=joint_fixture,
+        file_id=test_file.file_id,
+    )
+
+
+@dataclass
 class CleanupFixture:
     """Fixture for cleanup test with DAO and test files"""
 
     mongodb_dao: DrsObjectDaoPort
-    joint_fixture: JointFixture
+    joint: JointFixture
     cached_id: str
     expired_id: str
 
@@ -263,12 +301,12 @@ async def cleanup_fixture(
 ) -> AsyncGenerator[CleanupFixture, None]:
     """Set up state for and populate CleanupFixture"""
     # create AccessTimeDrsObjects for valid cached and expired cached file
-    test_file_cached = EXAMPLE_FILE.copy(deep=True)
+    test_file_cached = EXAMPLE_FILE.model_copy(deep=True)
     test_file_cached.file_id = "cached"
     test_file_cached.object_id = "cached"
     test_file_cached.last_accessed = utc_dates.now_as_utc()
 
-    test_file_expired = EXAMPLE_FILE.copy(deep=True)
+    test_file_expired = EXAMPLE_FILE.model_copy(deep=True)
     test_file_expired.file_id = "expired"
     test_file_expired.object_id = "expired"
     test_file_expired.last_accessed = utc_dates.now_as_utc() - timedelta(
@@ -297,7 +335,7 @@ async def cleanup_fixture(
 
     yield CleanupFixture(
         mongodb_dao=mongodb_dao,
-        joint_fixture=joint_fixture,
+        joint=joint_fixture,
         cached_id=test_file_cached.file_id,
         expired_id=test_file_expired.file_id,
     )
