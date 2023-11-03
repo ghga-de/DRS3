@@ -30,9 +30,8 @@ from hexkit.providers.s3.testutils import FileObject
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from tests.fixtures.joint import *  # noqa: F403
-from tests.fixtures.joint import CleanupFixture, ConfigErrorFixture, PopulatedFixture
+from tests.fixtures.joint import CleanupFixture, PopulatedFixture
 from tests.fixtures.mock_api.app import router
-from tests.fixtures.utils import generate_work_order_token
 
 unintercepted_hosts: list[str] = ["localhost"]
 
@@ -72,7 +71,7 @@ async def test_happy_journey(
     # outbox yet.)
 
     non_staged_requested_event = event_schemas.NonStagedFileRequested(
-        s3_endpoint_alias="test",
+        s3_endpoint_alias=joint_fixture.endpoint_alias_existing,
         file_id=example_file.file_id,
         target_object_id=object_id,
         target_bucket_id=joint_fixture.bucket_id,
@@ -107,7 +106,7 @@ async def test_happy_journey(
     # retry the access request:
     # (An check that an event is published indicating that a download was served.)
     download_served_event = event_schemas.FileDownloadServed(
-        s3_endpoint_alias="test",
+        s3_endpoint_alias=joint_fixture.endpoint_alias_existing,
         file_id=example_file.file_id,
         target_object_id=object_id,
         target_bucket_id=joint_fixture.bucket_id,
@@ -148,37 +147,6 @@ async def test_happy_journey(
         headers={"Authorization": "Bearer invalid"},
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
-@pytest.mark.asyncio
-async def test_drs_config_error(
-    config_error_fixture: ConfigErrorFixture,
-    httpx_mock: HTTPXMock,  # noqa: F811
-):
-    """Test DRS endpoint for a storage alias that is not configured"""
-    # generate work order token
-    work_order_token = generate_work_order_token(
-        file_id=config_error_fixture.file_id,
-        jwk=config_error_fixture.joint.jwk,
-        valid_seconds=120,
-    )
-
-    # modify default headers:
-    config_error_fixture.joint.rest_client.headers = httpx.Headers(
-        {"Authorization": f"Bearer {work_order_token}"}
-    )
-
-    # explicitly handle ekss API calls (and name unintercepted hosts above)
-    httpx_mock.add_callback(
-        callback=router.handle_request,
-        url=re.compile(rf"^{config_error_fixture.joint.config.ekss_base_url}.*"),
-    )
-
-    drs_id = config_error_fixture.file_id
-    response = await config_error_fixture.joint.rest_client.get(
-        f"/objects/{drs_id}", timeout=5
-    )
-    raise ValueError(response)
 
 
 @pytest.mark.asyncio
@@ -230,26 +198,12 @@ async def test_happy_deletion(
 
 
 @pytest.mark.asyncio
-async def test_deletion_config_error(
-    config_error_fixture: ConfigErrorFixture, httpx_mock: HTTPXMock  # noqa: F811
-):
-    """Simulate a deletion request for a file with an unconfigured storage alias."""
-    # explicitly handle ekss API calls (and name unintercepted hosts above)
-    httpx_mock.add_callback(
-        callback=router.handle_request,
-        url=re.compile(rf"^{config_error_fixture.joint.config.ekss_base_url}.*"),
-    )
-
-    data_repository = config_error_fixture.joint.data_repository
-    with pytest.raises(data_repository.StorageAliasNotConfiguredError):
-        await data_repository.delete_file(file_id=config_error_fixture.file_id)
-
-
-@pytest.mark.asyncio
 async def test_cleanup(cleanup_fixture: CleanupFixture):
     """Test outbox cleanup handling"""
     data_repository = cleanup_fixture.joint.data_repository
-    await data_repository.cleanup_outbox(s3_endpoint_alias="test")
+    await data_repository.cleanup_outbox(
+        s3_endpoint_alias=cleanup_fixture.joint.endpoint_alias_existing
+    )
 
     # check if object within threshold is still there
     cached_object = await cleanup_fixture.mongodb_dao.get_by_id(
@@ -270,4 +224,6 @@ async def test_cleanup(cleanup_fixture: CleanupFixture):
     )
 
     with pytest.raises(data_repository.StorageAliasNotConfiguredError):
-        await data_repository.cleanup_outbox(s3_endpoint_alias="fake_alias")
+        await data_repository.cleanup_outbox(
+            s3_endpoint_alias=cleanup_fixture.joint.endpoint_alias_fake
+        )

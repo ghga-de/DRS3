@@ -186,7 +186,7 @@ async def populated_fixture(
     """Prepopulate state for an existing DRS object"""
     # publish an event to register a new file for download:
     files_to_register_event = event_schemas.FileInternallyRegistered(
-        s3_endpoint_alias="test",  # to be changed
+        s3_endpoint_alias=joint_fixture.endpoint_alias_existing,
         file_id=EXAMPLE_FILE.file_id,
         object_id=EXAMPLE_FILE.object_id,
         bucket_id=joint_fixture.bucket_id,

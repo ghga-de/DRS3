@@ -15,12 +15,29 @@
 
 """Tests edge cases not covered by the typical journey test."""
 
+import re
+
+import httpx
 import pytest
 from fastapi import status
+from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from tests.fixtures.joint import *  # noqa: F403
-from tests.fixtures.joint import JointFixture
+from tests.fixtures.joint import ConfigErrorFixture, JointFixture
+from tests.fixtures.mock_api.app import router
 from tests.fixtures.utils import generate_token_signing_keys, generate_work_order_token
+
+unintercepted_hosts: list[str] = ["localhost"]
+
+
+@pytest.fixture
+def non_mocked_hosts() -> list:
+    """Fixture used by httpx_mock to determine which requests to intercept
+
+    We only want to intercept calls to the EKSS API, so this list will include
+    localhost and the host from the S3 fixture's connection URL.
+    """
+    return unintercepted_hosts
 
 
 @pytest.mark.asyncio
@@ -72,3 +89,50 @@ async def test_access_non_existing(joint_fixture: JointFixture):
         headers={"Authorization": f"Bearer {work_order_token}"},
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_deletion_config_error(
+    config_error_fixture: ConfigErrorFixture, httpx_mock: HTTPXMock  # noqa: F811
+):
+    """Simulate a deletion request for a file with an unconfigured storage alias."""
+    # explicitly handle ekss API calls (and name unintercepted hosts above)
+    httpx_mock.add_callback(
+        callback=router.handle_request,
+        url=re.compile(rf"^{config_error_fixture.joint.config.ekss_base_url}.*"),
+    )
+
+    data_repository = config_error_fixture.joint.data_repository
+    with pytest.raises(data_repository.StorageAliasNotConfiguredError):
+        await data_repository.delete_file(file_id=config_error_fixture.file_id)
+
+
+@pytest.mark.asyncio
+async def test_drs_config_error(
+    config_error_fixture: ConfigErrorFixture,
+    httpx_mock: HTTPXMock,  # noqa: F811
+):
+    """Test DRS endpoint for a storage alias that is not configured"""
+    # generate work order token
+    work_order_token = generate_work_order_token(
+        file_id=config_error_fixture.file_id,
+        jwk=config_error_fixture.joint.jwk,
+        valid_seconds=120,
+    )
+
+    # modify default headers:
+    config_error_fixture.joint.rest_client.headers = httpx.Headers(
+        {"Authorization": f"Bearer {work_order_token}"}
+    )
+
+    # explicitly handle ekss API calls (and name unintercepted hosts above)
+    httpx_mock.add_callback(
+        callback=router.handle_request,
+        url=re.compile(rf"^{config_error_fixture.joint.config.ekss_base_url}.*"),
+    )
+
+    drs_id = config_error_fixture.file_id
+    response = await config_error_fixture.joint.rest_client.get(
+        f"/objects/{drs_id}", timeout=5
+    )
+    assert response.status_code == 500
