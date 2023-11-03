@@ -20,6 +20,9 @@ import re
 import httpx
 import pytest
 from fastapi import status
+from ghga_service_commons.api.mock_router import (  # noqa: F401
+    assert_all_responses_were_requested,
+)
 from pytest_httpx import HTTPXMock, httpx_mock  # noqa: F401
 
 from tests.fixtures.joint import *  # noqa: F403
