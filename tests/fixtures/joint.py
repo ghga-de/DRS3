@@ -17,7 +17,6 @@
 
 __all__ = [
     "cleanup_fixture",
-    "config_error_fixture",
     "file_fixture",
     "joint_fixture",
     "JointFixture",
@@ -248,40 +247,6 @@ async def populated_fixture(
         object_id=object_id,
         example_file=EXAMPLE_FILE,
         joint_fixture=joint_fixture,
-    )
-
-
-@dataclass
-class ConfigErrorFixture:
-    """Fixture to provide DRS DB entry with misconfigured storage alias"""
-
-    mongodb_dao: DrsObjectDaoPort
-    joint: JointFixture
-    file_id: str
-
-
-@pytest_asyncio.fixture
-async def config_error_fixture(joint_fixture: JointFixture):
-    """Set up file with unavailable storage alias"""
-    alias = joint_fixture.endpoint_alias_fake
-
-    test_file = EXAMPLE_FILE.model_copy(deep=True)
-    test_file.file_id = alias
-    test_file.object_id = alias
-    test_file.s3_endpoint_alias = alias
-
-    # populate DB entry
-    mongodb_dao = await joint_fixture.mongodb.dao_factory.get_dao(
-        name="drs_objects",
-        dto_model=models.AccessTimeDrsObject,
-        id_field="file_id",
-    )
-    await mongodb_dao.insert(test_file)
-
-    yield ConfigErrorFixture(
-        mongodb_dao=mongodb_dao,
-        joint=joint_fixture,
-        file_id=test_file.file_id,
     )
 
 
