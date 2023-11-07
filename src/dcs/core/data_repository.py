@@ -165,7 +165,6 @@ class DataRepository(DataRepositoryPort):
             # publish an event to request a stage of the corresponding file:
             await self._event_publisher.unstaged_download_requested(
                 drs_object=drs_object_with_uri,
-                s3_endpoint_alias=s3_endpoint_alias,
                 target_bucket_id=bucket_id,
             )
 
@@ -190,7 +189,6 @@ class DataRepository(DataRepositoryPort):
         # publish an event indicating the served download:
         await self._event_publisher.download_served(
             drs_object=drs_object_with_uri,
-            s3_endpoint_alias=s3_endpoint_alias,
             target_bucket_id=bucket_id,
         )
 
@@ -244,16 +242,10 @@ class DataRepository(DataRepositoryPort):
                         object_id=object_id, from_error=error
                     ) from error
 
-    async def register_new_file(
-        self, *, file: models.DrsObjectBase, s3_endpoint_alias: str
-    ):
+    async def register_new_file(self, *, file: models.DrsObjectBase):
         """Register a file as a new DRS Object."""
         object_id = str(uuid.uuid4())
-        drs_object = models.DrsObject(
-            **file.model_dump(),
-            object_id=object_id,
-            s3_endpoint_alias=s3_endpoint_alias,
-        )
+        drs_object = models.DrsObject(**file.model_dump(), object_id=object_id)
 
         file_with_access_time = models.AccessTimeDrsObject(
             **drs_object.model_dump(),

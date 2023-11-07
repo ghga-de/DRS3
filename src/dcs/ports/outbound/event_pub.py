@@ -28,7 +28,6 @@ class EventPublisherPort(ABC):
         self,
         *,
         drs_object: models.DrsObjectWithUri,
-        s3_endpoint_alias: str,
         target_bucket_id: str,
     ) -> None:
         """Communicate the event of an download being served. This can be relevant for
@@ -41,7 +40,6 @@ class EventPublisherPort(ABC):
         self,
         *,
         drs_object: models.DrsObjectWithUri,
-        s3_endpoint_alias: str,
         target_bucket_id: str,
     ) -> None:
         """Communicates the event that a download was requested for a file that

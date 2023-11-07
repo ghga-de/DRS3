@@ -111,9 +111,7 @@ class DataRepositoryPort(ABC):
         ...
 
     @abstractmethod
-    async def register_new_file(
-        self, *, file: models.DrsObjectBase, s3_endpoint_alias: str
-    ):
+    async def register_new_file(self, *, file: models.DrsObjectBase):
         """Register a file as a new DRS Object."""
         ...
 
