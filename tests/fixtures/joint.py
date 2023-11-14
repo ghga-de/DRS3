@@ -22,6 +22,7 @@ __all__ = [
     "JointFixture",
     "mongodb_fixture",
     "s3_fixture",
+    "second_s3_fixture",
     "kafka_fixture",
     "populated_fixture",
     "PopulatedFixture",
@@ -69,6 +70,8 @@ from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests.fixtures.config import get_config
 from tests.fixtures.utils import generate_token_signing_keys, generate_work_order_token
 
+S3_ENDPOINT_ALIASES = ("test", "test2")
+
 EXAMPLE_FILE = models.AccessTimeDrsObject(
     file_id="examplefile001",
     object_id="object001",
@@ -76,9 +79,26 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
     creation_date=datetime.now().isoformat(),
     decrypted_size=12345,
     decryption_secret_id="some-secret",
-    s3_endpoint_alias="test",
+    s3_endpoint_alias=S3_ENDPOINT_ALIASES[0],
     last_accessed=utc_dates.now_as_utc(),
 )
+EXAMPLE_FILE_2 = EXAMPLE_FILE.model_copy(
+    deep=True,
+    update={
+        "file_id": "examplefile002",
+        "object_id": "object002",
+        "s3_endpoint_alias": S3_ENDPOINT_ALIASES[1],
+    },
+)
+
+second_s3_fixture = s3_fixture
+
+
+@dataclass
+class EndpointAliases:
+    node1: str = S3_ENDPOINT_ALIASES[0]
+    node2: str = S3_ENDPOINT_ALIASES[1]
+    fake: str = f"{S3_ENDPOINT_ALIASES[0]}_fake"
 
 
 class EKSSBaseInjector(BaseSettings):
@@ -94,20 +114,23 @@ class JointFixture:
     config: Config
     bucket_id: str
     data_repository: DataRepositoryPort
-    endpoint_alias_existing: str
-    endpoint_alias_fake: str
     rest_client: httpx.AsyncClient
     event_subscriber: KafkaEventSubscriber
     outbox_cleaner: OutboxCleaner
     mongodb: MongoDbFixture
     s3: S3Fixture
+    second_s3: S3Fixture
     kafka: KafkaFixture
     jwk: JWK
+    endpoint_aliases: EndpointAliases
 
 
 @pytest_asyncio.fixture
 async def joint_fixture(
-    mongodb_fixture: MongoDbFixture, s3_fixture: S3Fixture, kafka_fixture: KafkaFixture
+    mongodb_fixture: MongoDbFixture,
+    s3_fixture: S3Fixture,
+    second_s3_fixture: S3Fixture,
+    kafka_fixture: KafkaFixture,
 ) -> AsyncGenerator[JointFixture, None]:
     """A fixture that embeds all other fixtures for API-level integration testing"""
     jwk = generate_token_signing_keys()
@@ -118,12 +141,21 @@ async def joint_fixture(
     ekss_config = EKSSBaseInjector(ekss_base_url="http://ekss")
 
     bucket_id = "test-outbox"
-    s3_endpoint_alias = "test"
+
     node_config = S3ObjectStorageNodeConfig(
         bucket=bucket_id, credentials=s3_fixture.config
     )
+    second_node_config = S3ObjectStorageNodeConfig(
+        bucket=bucket_id, credentials=second_s3_fixture.config
+    )
+
+    endpoint_aliases = EndpointAliases()
+
     object_storage_config = S3ObjectStoragesConfig(
-        object_storages={s3_endpoint_alias: node_config}
+        object_storages={
+            endpoint_aliases.node1: node_config,
+            endpoint_aliases.node2: second_node_config,
+        }
     )
 
     config = get_config(
@@ -138,6 +170,7 @@ async def joint_fixture(
 
     # create storage entities:
     await s3_fixture.populate_buckets(buckets=[bucket_id])
+    await second_s3_fixture.populate_buckets(buckets=[bucket_id])
 
     async with prepare_core(config=config) as data_repository:
         async with (
@@ -147,7 +180,7 @@ async def joint_fixture(
             ) as event_subscriber,
             prepare_outbox_cleaner(
                 config=config,
-                s3_endpoint_alias=s3_endpoint_alias,
+                s3_endpoint_alias=endpoint_aliases.node1,
                 data_repo_override=data_repository,
             ) as outbox_cleaner,
         ):
@@ -156,15 +189,15 @@ async def joint_fixture(
                     config=config,
                     bucket_id=bucket_id,
                     data_repository=data_repository,
-                    endpoint_alias_existing=s3_endpoint_alias,
-                    endpoint_alias_fake=f"{s3_endpoint_alias}_fail",
                     rest_client=rest_client,
                     event_subscriber=event_subscriber,
                     outbox_cleaner=outbox_cleaner,
                     mongodb=mongodb_fixture,
                     s3=s3_fixture,
+                    second_s3=second_s3_fixture,
                     kafka=kafka_fixture,
                     jwk=jwk,
+                    endpoint_aliases=endpoint_aliases,
                 )
 
 
@@ -172,10 +205,10 @@ async def joint_fixture(
 class PopulatedFixture:
     """Returned by `populated_fixture()`."""
 
-    drs_id: str
-    object_id: str
-    example_file: models.AccessTimeDrsObject
+    mongodb_dao: DrsObjectDaoPort
     joint_fixture: JointFixture
+    first_example_file: models.AccessTimeDrsObject = EXAMPLE_FILE
+    second_example_file: models.AccessTimeDrsObject = EXAMPLE_FILE_2
 
 
 @pytest_asyncio.fixture
@@ -184,8 +217,8 @@ async def populated_fixture(
 ) -> AsyncGenerator[PopulatedFixture, None]:
     """Prepopulate state for an existing DRS object"""
     # publish an event to register a new file for download:
-    files_to_register_event = event_schemas.FileInternallyRegistered(
-        s3_endpoint_alias=joint_fixture.endpoint_alias_existing,
+    file_to_register_event = event_schemas.FileInternallyRegistered(
+        s3_endpoint_alias=joint_fixture.endpoint_aliases.node1,
         file_id=EXAMPLE_FILE.file_id,
         object_id=EXAMPLE_FILE.object_id,
         bucket_id=joint_fixture.bucket_id,
@@ -198,8 +231,22 @@ async def populated_fixture(
         content_offset=1234,
         decryption_secret_id="some-secret",
     )
+    second_file_to_register_event = file_to_register_event.model_copy(
+        deep=True,
+        update={
+            "s3_endpoint_alias": joint_fixture.endpoint_aliases.node2,
+            "file_id": EXAMPLE_FILE_2.file_id,
+            "object_id": EXAMPLE_FILE_2.object_id,
+        },
+    )
+
     await joint_fixture.kafka.publish_event(
-        payload=json.loads(files_to_register_event.model_dump_json()),
+        payload=json.loads(file_to_register_event.model_dump_json()),
+        type_=joint_fixture.config.files_to_register_type,
+        topic=joint_fixture.config.files_to_register_topic,
+    )
+    await joint_fixture.kafka.publish_event(
+        payload=json.loads(second_file_to_register_event.model_dump_json()),
         type_=joint_fixture.config.files_to_register_type,
         topic=joint_fixture.config.files_to_register_topic,
     )
@@ -208,14 +255,21 @@ async def populated_fixture(
     async with joint_fixture.kafka.record_events(
         in_topic=joint_fixture.config.file_registered_event_topic
     ) as recorder:
+        # run twice to consume both events
+        await joint_fixture.event_subscriber.run(forever=False)
         await joint_fixture.event_subscriber.run(forever=False)
 
     # check that an event informing about the newly registered file was published:
-    assert len(recorder.recorded_events) == 1
+    assert len(recorder.recorded_events) == 2
     assert (
         recorder.recorded_events[0].type_
         == joint_fixture.config.file_registered_event_type
     )
+    assert (
+        recorder.recorded_events[1].type_
+        == joint_fixture.config.file_registered_event_type
+    )
+    # just check the first payload, assume the second one is also correct
     file_registered_event = event_schemas.FileRegisteredForDownload(
         **recorder.recorded_events[0].payload
     )
@@ -223,29 +277,12 @@ async def populated_fixture(
     assert file_registered_event.decrypted_sha256 == EXAMPLE_FILE.decrypted_sha256
     assert file_registered_event.upload_date == EXAMPLE_FILE.creation_date
 
-    # get the object id that was generated upon event consumption
     dao = await DrsObjectDaoConstructor.construct(
         dao_factory=joint_fixture.mongodb.dao_factory
     )
-    drs_object = await dao.get_by_id(EXAMPLE_FILE.file_id)
-    object_id = drs_object.object_id
-
-    # generate work order token
-    work_order_token = generate_work_order_token(
-        file_id=EXAMPLE_FILE.file_id,
-        jwk=joint_fixture.jwk,
-        valid_seconds=120,
-    )
-
-    # modify default headers:
-    joint_fixture.rest_client.headers = httpx.Headers(
-        {"Authorization": f"Bearer {work_order_token}"}
-    )
 
     yield PopulatedFixture(
-        drs_id=EXAMPLE_FILE.file_id,
-        object_id=object_id,
-        example_file=EXAMPLE_FILE,
+        mongodb_dao=dao,
         joint_fixture=joint_fixture,
     )
 

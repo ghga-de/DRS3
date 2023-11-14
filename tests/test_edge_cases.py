@@ -49,7 +49,7 @@ class StorageUnavailableFixture:
 @pytest_asyncio.fixture
 async def storage_unavailable_fixture(joint_fixture: JointFixture):
     """Set up file with unavailable storage alias"""
-    alias = joint_fixture.endpoint_alias_fake
+    alias = joint_fixture.endpoint_aliases.fake
 
     test_file = EXAMPLE_FILE.model_copy(deep=True)
     test_file.file_id = alias
