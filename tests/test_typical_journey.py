@@ -56,6 +56,12 @@ async def test_happy_journey(
     """Simulates a typical, successful API journey."""
     joint_fixture = populated_fixture.joint_fixture
 
+    # explicitly handle ekss API calls (and name unintercepted hosts above)
+    httpx_mock.add_callback(
+        callback=router.handle_request,
+        url=re.compile(rf"^{joint_fixture.config.ekss_base_url}.*"),
+    )
+
     # loop through both node locations
     for example_file, endpoint_alias, s3 in (
         (
@@ -84,14 +90,6 @@ async def test_happy_journey(
         joint_fixture.rest_client.headers = httpx.Headers(
             {"Authorization": f"Bearer {work_order_token}"}
         )
-
-        # explicitly handle ekss API calls (and name unintercepted hosts above)
-        httpx_mock.add_callback(
-            callback=router.handle_request,
-            url=re.compile(rf"^{joint_fixture.config.ekss_base_url}.*"),
-        )
-
-        # simplify testing by using one longer lived work order token
 
         # request access to the newly registered file:
         # (An check that an event is published indicating that the file is not in
@@ -192,15 +190,15 @@ async def test_happy_deletion(
     """Simulates a typical, successful journey for file deletion."""
     joint_fixture = populated_fixture.joint_fixture
 
-    drs_id = populated_fixture.first_example_file.file_id
-    drs_object = await populated_fixture.mongodb_dao.get_by_id(drs_id)
-    object_id = drs_object.object_id
-
     # explicitly handle ekss API calls (and name unintercepted hosts above)
     httpx_mock.add_callback(
         callback=router.handle_request,
         url=re.compile(rf"^{joint_fixture.config.ekss_base_url}.*"),
     )
+
+    drs_id = populated_fixture.first_example_file.file_id
+    drs_object = await populated_fixture.mongodb_dao.get_by_id(drs_id)
+    object_id = drs_object.object_id
 
     # place example content in the outbox bucket:
     file_object = file_fixture.model_copy(
