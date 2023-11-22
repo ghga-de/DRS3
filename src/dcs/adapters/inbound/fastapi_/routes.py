@@ -16,7 +16,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from dcs.adapters.inbound.fastapi_ import (
     dummies,
@@ -33,6 +33,13 @@ router = APIRouter()
 
 
 RESPONSES = {
+    "expectedServerError": {
+        "description": (
+            "A configuration or external communication error has occurred and details "
+            + "should not be communicated to the client"
+        ),
+        "model": http_exceptions.HttpExpectedServerError.get_body_model(),
+    },
     "noSuchObject": {
         "description": (
             "Exceptions by ID:\n- noSuchObject: The requested DrsObject was not found"
@@ -82,6 +89,7 @@ async def health():
         status.HTTP_202_ACCEPTED: RESPONSES["objectNotInOutbox"],
         status.HTTP_403_FORBIDDEN: RESPONSES["wrongFileAuthorizationError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["noSuchObject"],
+        status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["expectedServerError"],
     },
 )
 async def get_drs_object(
@@ -114,9 +122,7 @@ async def get_drs_object(
         ) from object_not_found_error
 
     except data_repository.StorageAliasNotConfiguredError as configuration_error:
-        raise HTTPException(
-            status_code=500, detail="Internal Server Error"
-        ) from configuration_error
+        raise http_exceptions.HttpExpectedServerError() from configuration_error
 
 
 @router.get(
@@ -130,6 +136,7 @@ async def get_drs_object(
     responses={
         status.HTTP_403_FORBIDDEN: RESPONSES["wrongFileAuthorizationError"],
         status.HTTP_404_NOT_FOUND: RESPONSES["noSuchObject"],
+        status.HTTP_500_INTERNAL_SERVER_ERROR: RESPONSES["expectedServerError"],
     },
 )
 async def get_envelope(
@@ -160,9 +167,7 @@ async def get_envelope(
     except (
         data_repository.APICommunicationError,
         data_repository.EnvelopeNotFoundError,
-    ) as configuration_error:
-        raise HTTPException(
-            status_code=500, detail="Internal Server Error"
-        ) from configuration_error
+    ) as communication_error:
+        raise http_exceptions.HttpExpectedServerError() from communication_error
 
     return http_responses.HttpEnvelopeResponse(envelope=envelope)
