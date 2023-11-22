@@ -33,14 +33,6 @@ router = APIRouter()
 
 
 RESPONSES = {
-    "entryNotFoundError": {
-        "description": (
-            "Exceptions by ID:"
-            + "\n- envelopeNotFoundError: The requested envelope could not be retrieved"
-            + "\n- noSuchObject: The requested DrsObject was not found"
-        ),
-        "model": http_exceptions.HttpObjectNotFoundError.get_body_model(),
-    },
     "noSuchObject": {
         "description": (
             "Exceptions by ID:\n- noSuchObject: The requested DrsObject was not found"
@@ -137,7 +129,7 @@ async def get_drs_object(
     response_description="Successfully delivered envelope.",
     responses={
         status.HTTP_403_FORBIDDEN: RESPONSES["wrongFileAuthorizationError"],
-        status.HTTP_404_NOT_FOUND: RESPONSES["entryNotFoundError"],
+        status.HTTP_404_NOT_FOUND: RESPONSES["noSuchObject"],
     },
 )
 async def get_envelope(
@@ -165,9 +157,12 @@ async def get_envelope(
         raise http_exceptions.HttpObjectNotFoundError(
             object_id=object_id
         ) from object_not_found_error
-    except data_repository.EnvelopeNotFoundError as envelope_not_found_error:
-        raise http_exceptions.HttpEnvelopeNotFoundError(
-            description=str(envelope_not_found_error)
-        ) from envelope_not_found_error
+    except (
+        data_repository.APICommunicationError,
+        data_repository.EnvelopeNotFoundError,
+    ) as configuration_error:
+        raise HTTPException(
+            status_code=500, detail="Internal Server Error"
+        ) from configuration_error
 
     return http_responses.HttpEnvelopeResponse(envelope=envelope)

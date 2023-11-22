@@ -295,8 +295,6 @@ paths:
                 $ref: '#/components/schemas/HttpObjectNotFoundError'
           description: 'Exceptions by ID:
 
-            - envelopeNotFoundError: The requested envelope could not be retrieved
-
             - noSuchObject: The requested DrsObject was not found'
         '422':
           content:
