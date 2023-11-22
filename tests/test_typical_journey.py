@@ -217,6 +217,7 @@ async def test_happy_deletion(
             ExpectedEvent(
                 payload={
                     "file_id": drs_id,
+                    "s3_endpoint_alias": drs_object.s3_endpoint_alias,
                 },
                 type_=joint_fixture.config.file_deleted_event_type,
             )
