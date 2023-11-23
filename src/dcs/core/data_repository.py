@@ -328,6 +328,4 @@ class DataRepository(DataRepositoryPort):
         # Remove file from database and send success event
         # Should not fail as we got the DRS object by the same ID
         await self._drs_object_dao.delete(id_=file_id)
-        await self._event_publisher.file_deleted(
-            file_id=file_id, s3_endpoint_alias=alias
-        )
+        await self._event_publisher.file_deleted(file_id=file_id)

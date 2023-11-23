@@ -26,7 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "ghga-service-commons[all]>=1.2.0",
-    "ghga-event-schemas~=2.0.0",
+    "ghga-event-schemas==1.0.0",
     "hexkit[mongodb,s3,akafka]>=1.0.0",
     "typer>=0.6.0",
 ]

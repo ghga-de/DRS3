@@ -171,11 +171,9 @@ class EventPubTranslator(EventPublisherPort):
             key=drs_object.file_id,
         )
 
-    async def file_deleted(self, *, file_id: str, s3_endpoint_alias: str) -> None:
+    async def file_deleted(self, *, file_id: str) -> None:
         """Communicates the event that a file has been successfully deleted."""
-        payload = event_schemas.FileDeletionSuccess(
-            file_id=file_id, s3_endpoint_alias=s3_endpoint_alias
-        )
+        payload = event_schemas.FileDeletionSuccess(file_id=file_id)
         payload_dict = json.loads(payload.model_dump_json())
 
         await self._provider.publish(

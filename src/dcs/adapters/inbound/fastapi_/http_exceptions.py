@@ -35,7 +35,7 @@ class HttpEnvelopeNotFoundError(HttpCustomExceptionBase):
         )
 
 
-class HttpExpectedServerError(HttpCustomExceptionBase):
+class HttpInternalServerError(HttpCustomExceptionBase):
     """Thrown when an error is raised with details that should not be propagated to a client"""
 
     exception_id = "internalServerError"
