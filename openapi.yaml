@@ -95,11 +95,11 @@ components:
           type: array
       title: HTTPValidationError
       type: object
-    HttpExpectedServerError:
+    HttpInternalServerError:
       additionalProperties: false
       properties:
         data:
-          $ref: '#/components/schemas/HttpExpectedServerErrorData'
+          $ref: '#/components/schemas/HttpInternalServerErrorData'
         description:
           description: A human readable message to the client explaining the cause
             of the exception.
@@ -112,12 +112,12 @@ components:
       - data
       - description
       - exception_id
-      title: HttpExpectedServerError
+      title: HttpInternalServerError
       type: object
-    HttpExpectedServerErrorData:
+    HttpInternalServerErrorData:
       additionalProperties: true
       properties: {}
-      title: HttpExpectedServerErrorData
+      title: HttpInternalServerErrorData
       type: object
     HttpObjectNotFoundError:
       additionalProperties: false
@@ -275,7 +275,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpExpectedServerError'
+                $ref: '#/components/schemas/HttpInternalServerError'
           description: A configuration or external communication error has occurred
             and details should not be communicated to the client
       security:
@@ -337,7 +337,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpExpectedServerError'
+                $ref: '#/components/schemas/HttpInternalServerError'
           description: A configuration or external communication error has occurred
             and details should not be communicated to the client
       security:
