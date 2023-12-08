@@ -121,7 +121,7 @@ async def get_drs_object(
         return drs_object
 
     except data_repository.RetryAccessLaterError as retry_later_error:
-        # tell client to retry after 5 minutes
+        print("tell client to retry after 5 minutes")
         return http_responses.HttpObjectNotInOutboxResponse(
             retry_after=retry_later_error.retry_after
         )
@@ -157,7 +157,7 @@ async def get_envelope(  # noqa: C901
     URL safe base64 encoded public key. The object_id parameter refers to the file id
     and **not** the S3 object id.
     """
-
+    print("Get envelope")
     if not work_order_context.file_id == object_id:
         raise http_exceptions.HttpWrongFileAuthorizationError()
 
@@ -167,6 +167,7 @@ async def get_envelope(  # noqa: C901
         envelope = await data_repository.serve_envelope(
             drs_id=object_id, public_key=public_key
         )
+        print("Serve envelope")
     except data_repository.APICommunicationError as external_api_error:
         raise http_exceptions.HttpExternalAPIError(
             description=str(external_api_error)

@@ -137,7 +137,7 @@ class DataRepository(DataRepositoryPort):
         instructs to retry the call after a specified amount of time.
         """
 
-        # make sure that metadata for the DRS object exists in the database:
+        print("make sure that metadata for the DRS object exists in the database:")
         try:
             drs_object_with_access_time = await self._drs_object_dao.get_by_id(drs_id)
         except ResourceNotFoundError as error:
@@ -149,22 +149,24 @@ class DataRepository(DataRepositoryPort):
 
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
 
-        # check if the file corresponding to the DRS object is already in the outbox:
+        print(
+            "check if the file corresponding to the DRS object is already in the outbox"
+        )
         if not await self._object_storage.does_object_exist(
             bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
         ):
-            # publish an event to request a stage of the corresponding file:
+            print("publish an event to request a stage of the corresponding file:")
             await self._event_publisher.unstaged_download_requested(
                 drs_object=drs_object_with_uri,
                 target_bucket_id=self._config.outbox_bucket,
             )
 
-            # instruct to retry later:
+            print("instruct to retry later:")
             raise self.RetryAccessLaterError(
                 retry_after=self._config.retry_access_after
             )
 
-        # Successfully staged, update access information now
+        print("Successfully staged, update access information now")
         drs_object_with_access_time.last_accessed = utc_dates.now_as_utc()
         try:
             await self._drs_object_dao.update(drs_object_with_access_time)
@@ -173,12 +175,14 @@ class DataRepository(DataRepositoryPort):
 
         drs_object_with_access = await self._get_access_model(drs_object=drs_object)
 
-        # publish an event indicating the served download:
+        print("publish an event indicating the served download")
         await self._event_publisher.download_served(
             drs_object=drs_object_with_uri, target_bucket_id=self._config.outbox_bucket
         )
 
-        # CLI needs to have the encrypted size to correctly download all file parts
+        print(
+            "CLI needs to have the encrypted size to correctly download all file parts"
+        )
         encrypted_size = await self._object_storage.get_object_size(
             bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
         )
@@ -194,7 +198,7 @@ class DataRepository(DataRepositoryPort):
         """
         threshold = utc_dates.now_as_utc() - timedelta(days=self._config.cache_timeout)
 
-        # filter to get all files in outbox that should be removed
+        print("filter to get all files in outbox that should be removed")
         object_ids = await self._object_storage.list_all_object_ids(
             bucket_id=self._config.outbox_bucket
         )
@@ -234,7 +238,7 @@ class DataRepository(DataRepositoryPort):
         # write file entry to database
         await self._drs_object_dao.insert(file_with_access_time)
 
-        # publish message that the drs file has been registered
+        print("publish message that the drs file has been registered")
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
         await self._event_publisher.file_registered(drs_object=drs_object_with_uri)
 
@@ -277,7 +281,7 @@ class DataRepository(DataRepositoryPort):
             file_id: id for the file to delete.
         """
 
-        # Get secret_id, call EKSS to remove file secret from vault
+        print("Get secret_id, call EKSS to remove file secret from vault")
         try:
             drs_object = await self._drs_object_dao.get_by_id(id_=file_id)
             delete_secret_from_ekss(
@@ -291,7 +295,7 @@ class DataRepository(DataRepositoryPort):
             # If the secret does not exist, we are done
             pass
 
-        # Try to remove file from S3
+        print("Try to remove file from S3")
         try:
             await self._object_storage.delete_object(
                 bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
@@ -301,7 +305,7 @@ class DataRepository(DataRepositoryPort):
             # If file does not exist anyways, we are done.
             pass
 
-        # Try to remove file from database
+        print("Try to remove file from database")
         try:
             await self._drs_object_dao.delete(id_=file_id)
         except ResourceNotFoundError:
