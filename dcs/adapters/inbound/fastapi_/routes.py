@@ -117,6 +117,7 @@ async def get_drs_object(
 
     try:
         drs_object = await data_repository.access_drs_object(drs_id=object_id)
+        print("Returning drs object.")
         return drs_object
 
     except data_repository.RetryAccessLaterError as retry_later_error:
