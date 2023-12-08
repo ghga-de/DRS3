@@ -118,6 +118,7 @@ async def get_drs_object(
     try:
         drs_object = await data_repository.access_drs_object(drs_id=object_id)
         print("Returning drs object.")
+        print(drs_object)
         return drs_object
 
     except data_repository.RetryAccessLaterError as retry_later_error:
@@ -130,6 +131,11 @@ async def get_drs_object(
         raise http_exceptions.HttpObjectNotFoundError(
             object_id=object_id
         ) from object_not_found_error
+
+    except Exception as e:
+        print("Exception")
+        print(e)
+        raise e
 
 
 @router.get(

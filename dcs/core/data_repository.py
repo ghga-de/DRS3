@@ -174,6 +174,7 @@ class DataRepository(DataRepositoryPort):
             raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
 
         drs_object_with_access = await self._get_access_model(drs_object=drs_object)
+        print(f"drs_object_with_access: {drs_object_with_access}")
 
         print("publish an event indicating the served download")
         await self._event_publisher.download_served(
@@ -186,6 +187,7 @@ class DataRepository(DataRepositoryPort):
         encrypted_size = await self._object_storage.get_object_size(
             bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
         )
+        print(f"encrypted size: {encrypted_size}")
         return drs_object_with_access.convert_to_drs_response_model(size=encrypted_size)
 
     async def cleanup_outbox(self):
