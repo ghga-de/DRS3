@@ -33,6 +33,8 @@ from dcs.ports.outbound.dao import DrsObjectDaoPort, ResourceNotFoundError
 from dcs.ports.outbound.event_pub import EventPublisherPort
 from dcs.ports.outbound.storage import ObjectStoragePort
 
+CNT = [1]
+
 
 class DataRepositoryConfig(BaseSettings):
     """Config parameters needed for the DataRepository."""
@@ -137,7 +139,11 @@ class DataRepository(DataRepositoryPort):
         instructs to retry the call after a specified amount of time.
         """
 
-        print("make sure that metadata for the DRS object exists in the database:")
+        cnt = CNT[0]
+        CNT[0] += 1
+
+        # make sure that metadata for the DRS object exists in the database
+        print(f"access_drs_object call #{cnt}")
         try:
             drs_object_with_access_time = await self._drs_object_dao.get_by_id(drs_id)
         except ResourceNotFoundError as error:
@@ -149,24 +155,24 @@ class DataRepository(DataRepositoryPort):
 
         drs_object_with_uri = self._get_model_with_self_uri(drs_object=drs_object)
 
-        print(
-            "check if the file corresponding to the DRS object is already in the outbox"
-        )
+        # check if the file corresponding to the DRS object is already in the outbox
         if not await self._object_storage.does_object_exist(
             bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
         ):
-            print("publish an event to request a stage of the corresponding file:")
+            print(f"access_drs_object call #{cnt} check outbox negative")
+            # publish an event to request a stage of the corresponding file:
             await self._event_publisher.unstaged_download_requested(
                 drs_object=drs_object_with_uri,
                 target_bucket_id=self._config.outbox_bucket,
             )
 
-            print("instruct to retry later:")
+            # instruct to retry later
             raise self.RetryAccessLaterError(
                 retry_after=self._config.retry_access_after
             )
 
-        print("Successfully staged, update access information now")
+        print(f"access_drs_object call #{cnt} check outbox positive")
+        # Successfully staged, update access information now
         drs_object_with_access_time.last_accessed = utc_dates.now_as_utc()
         try:
             await self._drs_object_dao.update(drs_object_with_access_time)
@@ -174,21 +180,21 @@ class DataRepository(DataRepositoryPort):
             raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
 
         drs_object_with_access = await self._get_access_model(drs_object=drs_object)
-        print(f"drs_object_with_access: {drs_object_with_access}")
+        print(f"access_drs_object call #{cnt} {drs_object_with_access=}")
 
-        print("publish an event indicating the served download")
+        # publish an event indicating the served download
         await self._event_publisher.download_served(
             drs_object=drs_object_with_uri, target_bucket_id=self._config.outbox_bucket
         )
 
-        print(
-            "CLI needs to have the encrypted size to correctly download all file parts"
-        )
+        # CLI needs to have the encrypted size to correctly download all file parts
         encrypted_size = await self._object_storage.get_object_size(
             bucket_id=self._config.outbox_bucket, object_id=drs_object.object_id
         )
-        print(f"encrypted size: {encrypted_size}")
-        return drs_object_with_access.convert_to_drs_response_model(size=encrypted_size)
+        print(f"access_drs_object call #{cnt} {encrypted_size=}")
+        ret = drs_object_with_access.convert_to_drs_response_model(size=encrypted_size)
+        print(f"access_drs_object call #{cnt} returning {ret}")
+        return ret
 
     async def cleanup_outbox(self):
         """

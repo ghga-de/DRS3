@@ -45,12 +45,6 @@ repos:
     hooks:
       - id: mypy
         args: [--no-warn-unused-ignores]
-  - repo: https://github.com/PyCQA/pylint
-    rev: v2.16.4
-    hooks:
-      - id: pylint
-        args: [--disable=E0401]
-        exclude: tests|.devcontainer
   - repo: https://github.com/PyCQA/flake8
     rev: 6.0.0
     hooks:

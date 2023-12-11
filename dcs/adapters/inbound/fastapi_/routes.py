@@ -117,25 +117,26 @@ async def get_drs_object(
 
     try:
         drs_object = await data_repository.access_drs_object(drs_id=object_id)
-        print("Returning drs object.")
-        print(drs_object)
+        # print("Returning drs object.")
+        # print(drs_object)
         return drs_object
 
     except data_repository.RetryAccessLaterError as retry_later_error:
-        print("tell client to retry after 5 minutes")
+        # print("tell client to retry after 5 minutes")
+        print("router - HttpObjectNotInOutboxResponse in get_drs_object")
         return http_responses.HttpObjectNotInOutboxResponse(
             retry_after=retry_later_error.retry_after
         )
 
     except data_repository.DrsObjectNotFoundError as object_not_found_error:
+        print("router - HttpObjectNotFoundError in get_drs_object")
         raise http_exceptions.HttpObjectNotFoundError(
             object_id=object_id
         ) from object_not_found_error
 
-    except Exception as e:
-        print("Exception")
-        print(e)
-        raise e
+    except Exception as exc:
+        print("router - Exception in get_drs_object", exc)
+        raise exc
 
 
 @router.get(
