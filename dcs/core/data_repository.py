@@ -151,6 +151,12 @@ class DataRepository(DataRepositoryPort):
         except ResourceNotFoundError as error:
             raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
 
+        t = time() - t0
+        print(
+            f"access_drs_object call #{cnt}"
+            f" {t=} got drs object {drs_object_with_access_time=}"
+        )
+
         drs_object = models.DrsObject(
             **drs_object_with_access_time.dict(exclude={"last_accessed"})
         )
