@@ -173,7 +173,8 @@ class DataRepository(DataRepositoryPort):
                 retry_after=self._config.retry_access_after
             )
 
-        print(f"access_drs_object call #{cnt} check outbox positive")
+        t = time() - t0
+        print(f"access_drs_object call #{cnt} {t=} check outbox positive")
         # Successfully staged, update access information now
         drs_object_with_access_time.last_accessed = utc_dates.now_as_utc()
         try:
@@ -183,7 +184,7 @@ class DataRepository(DataRepositoryPort):
 
         drs_object_with_access = await self._get_access_model(drs_object=drs_object)
         t = time() - t0
-        print(f"access_drs_object call #{cnt} {drs_object_with_access=} {t=}")
+        print(f"access_drs_object call #{cnt} {t=} {drs_object_with_access=}")
 
         # publish an event indicating the served download
         await self._event_publisher.download_served(
@@ -191,7 +192,7 @@ class DataRepository(DataRepositoryPort):
         )
 
         t = time() - t0
-        print(f"access_drs_object call #{cnt} event published {t=}")
+        print(f"access_drs_object call #{cnt} {t=} event published")
 
         # CLI needs to have the encrypted size to correctly download all file parts
         encrypted_size = await self._object_storage.get_object_size(
