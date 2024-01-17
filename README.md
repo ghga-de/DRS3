@@ -1,4 +1,3 @@
-
 [![tests](https://github.com/ghga-de/download-controller-service/actions/workflows/tests.yaml/badge.svg)](https://github.com/ghga-de/download-controller-service/actions/workflows/tests.yaml)
 [![Coverage Status](https://coveralls.io/repos/github/ghga-de/download-controller-service/badge.svg?branch=main)](https://coveralls.io/github/ghga-de/download-controller-service?branch=main)
 
@@ -8,39 +7,9 @@ Download Controller Service - a GA4GH DRS-compliant service for delivering files
 
 ## Description
 
-<!-- Please provide a short overview of the features of this service.-->
+<!-- Please provide a short overview of the features of this service. -->
 
-This service implements the
-[GA4GH DRS](https://github.com/ga4gh/data-repository-service-schemas) v1.0.0 for
-serving files that where encrypted according to the
-[GA4GH Crypt4GH](https://www.ga4gh.org/news/crypt4gh-a-secure-method-for-sharing-human-genetic-data/)
-from S3-compatible object storages.
-
-Thereby, only the `GET /objects/{object_id}` is implemented. It always returns
-an access_method for the object via S3. This makes the second endpoint
-`GET /objects/{object_id}/access/{access_id}` that
-is contained in the DRS spec unnecessary. For more details see the OpenAPI spec
-described below.
-
-For authorization, a JSON web token is expected via Bearer Authentication that has a format
-described [here](./dcs/core/auth_policies.py).
-
-All files that can be requested are registered in a MongoDB database owned and
-controlled by this service. Registration of new events happens through a Kafka event.
-
-It serves pre-signed URLs to S3 objects located in a single so-called outbox bucket.
-If the file is not already in the bucket when the user calls the object endpoint,
-an event is published to request staging the file to the outbox. The staging has to
-be carried out by a different service.
-
-For more details on the events consumed and produced by this service, see the
-configuration.
-
-The DRS object endpoint serves files in an encrypted fashion as described by the
-Crypt4GH standard, but without the evelope. A user-specific envelope can be requested
-from the `GET /objects/{object_id}/envelopes` endpoint. The actual envelope creation
-is delegated to another service via a RESTful call. Please see the configuration for
-further details.
+Here you should provide a short summary of the purpose of this microservice.
 
 
 ## Installation
@@ -82,7 +51,7 @@ dcs --help
 The service requires the following configuration parameters:
 - **`object_storages`** *(object)*: Can contain additional properties.
 
-  - **Additional Properties**: Refer to *[#/$defs/S3ObjectStorageNodeConfig](#$defs/S3ObjectStorageNodeConfig)*.
+  - **Additional properties**: Refer to *[#/$defs/S3ObjectStorageNodeConfig](#%24defs/S3ObjectStorageNodeConfig)*.
 
 - **`files_to_register_topic`** *(string)*: The name of the topic to receive events informing about new files that shall be made available for download.
 
@@ -232,13 +201,28 @@ The service requires the following configuration parameters:
 
 - **`kafka_security_protocol`** *(string)*: Protocol used to communicate with brokers. Valid values are: PLAINTEXT, SSL. Must be one of: `["PLAINTEXT", "SSL"]`. Default: `"PLAINTEXT"`.
 
-- **`kafka_ssl_cafile`** *(string)*: Certificate Authority file path containing certificates used to sign broker certificates. If a CA not specified, the default system CA will be used if found by OpenSSL. Default: `""`.
+- **`kafka_ssl_cafile`** *(string)*: Certificate Authority file path containing certificates used to sign broker certificates. If a CA is not specified, the default system CA will be used if found by OpenSSL. Default: `""`.
 
 - **`kafka_ssl_certfile`** *(string)*: Optional filename of client certificate, as well as any CA certificates needed to establish the certificate's authenticity. Default: `""`.
 
 - **`kafka_ssl_keyfile`** *(string)*: Optional filename containing the client private key. Default: `""`.
 
 - **`kafka_ssl_password`** *(string)*: Optional password to be used for the client private key. Default: `""`.
+
+- **`generate_correlation_id`** *(boolean)*: A flag, which, if False, will result in an error when inbound requests don't possess a correlation ID. If True, requests without a correlation ID will be assigned a newly generated ID in the correlation ID middleware function. Default: `true`.
+
+
+  Examples:
+
+  ```json
+  true
+  ```
+
+
+  ```json
+  false
+  ```
+
 
 - **`db_connection_str`** *(string, format: password)*: MongoDB connection string. Might include credentials. For more information see: https://naiveskill.com/mongodb-connection-string/.
 
@@ -312,13 +296,11 @@ The service requires the following configuration parameters:
 
 - **`auth_map_claims`** *(object)*: A mapping of claims to attributes in the GHGA auth context. Can contain additional properties. Default: `{}`.
 
-  - **Additional Properties** *(string)*
+  - **Additional properties** *(string)*
 
 - **`host`** *(string)*: IP of the host. Default: `"127.0.0.1"`.
 
 - **`port`** *(integer)*: Port to expose the server on the specified host. Default: `8080`.
-
-- **`log_level`** *(string)*: Controls the verbosity of the log. Must be one of: `["critical", "error", "warning", "info", "debug", "trace"]`. Default: `"info"`.
 
 - **`auto_reload`** *(boolean)*: A development feature. Set to `True` to automatically reload the server upon code changes. Default: `false`.
 
@@ -409,6 +391,96 @@ The service requires the following configuration parameters:
 
 
 - **`api_route`** *(string)*: Default: `"/ga4gh/drs/v1"`.
+
+## Definitions
+
+
+- <a id="%24defs/S3Config"></a>**`S3Config`** *(object)*: S3-specific config params.
+Inherit your config class from this class if you need
+to talk to an S3 service in the backend.<br>  Args:
+    s3_endpoint_url (str): The URL to the S3 endpoint.
+    s3_access_key_id (str):
+        Part of credentials for login into the S3 service. See:
+        https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
+    s3_secret_access_key (str):
+        Part of credentials for login into the S3 service. See:
+        https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
+    s3_session_token (Optional[str]):
+        Optional part of credentials for login into the S3 service. See:
+        https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
+    aws_config_ini (Optional[Path]):
+        Path to a config file for specifying more advanced S3 parameters.
+        This should follow the format described here:
+        https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#using-a-configuration-file
+        Defaults to None. Cannot contain additional properties.
+
+  - **`s3_endpoint_url`** *(string, required)*: URL to the S3 API.
+
+
+    Examples:
+
+    ```json
+    "http://localhost:4566"
+    ```
+
+
+  - **`s3_access_key_id`** *(string, required)*: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html.
+
+
+    Examples:
+
+    ```json
+    "my-access-key-id"
+    ```
+
+
+  - **`s3_secret_access_key`** *(string, format: password, required)*: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html.
+
+
+    Examples:
+
+    ```json
+    "my-secret-access-key"
+    ```
+
+
+  - **`s3_session_token`**: Part of credentials for login into the S3 service. See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html. Default: `null`.
+
+    - **Any of**
+
+      - *string, format: password*
+
+      - *null*
+
+
+    Examples:
+
+    ```json
+    "my-session-token"
+    ```
+
+
+  - **`aws_config_ini`**: Path to a config file for specifying more advanced S3 parameters. This should follow the format described here: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#using-a-configuration-file. Default: `null`.
+
+    - **Any of**
+
+      - *string, format: path*
+
+      - *null*
+
+
+    Examples:
+
+    ```json
+    "~/.aws/config"
+    ```
+
+
+- <a id="%24defs/S3ObjectStorageNodeConfig"></a>**`S3ObjectStorageNodeConfig`** *(object)*: Configuration for one specific object storage node and one bucket in it.<br>  The bucket is the main bucket that the service is responsible for. Cannot contain additional properties.
+
+  - **`bucket`** *(string, required)*
+
+  - **`credentials`**: Refer to *[#/$defs/S3Config](#%24defs/S3Config)*.
 
 
 ### Usage:
