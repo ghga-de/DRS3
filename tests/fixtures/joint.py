@@ -271,7 +271,7 @@ async def populated_fixture(
     )
     # just check the first payload, assume the second one is also correct
     file_registered_event = event_schemas.FileRegisteredForDownload(
-        **recorder.recorded_events[0].payload
+        **recorder.recorded_events[0].payload  # type: ignore
     )
     assert file_registered_event.file_id == EXAMPLE_FILE.file_id
     assert file_registered_event.decrypted_sha256 == EXAMPLE_FILE.decrypted_sha256
