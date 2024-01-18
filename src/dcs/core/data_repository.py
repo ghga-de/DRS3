@@ -144,8 +144,9 @@ class DataRepository(DataRepositoryPort):
         try:
             drs_object_with_access_time = await self._drs_object_dao.get_by_id(drs_id)
         except ResourceNotFoundError as error:
-            log.error(f"Could not find object for DRS id {drs_id}")
-            raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
+            drs_object_not_found = self.DrsObjectNotFoundError(drs_id=drs_id)
+            log.error(drs_object_not_found)
+            raise drs_object_not_found from error
 
         drs_object = models.DrsObject(
             **drs_object_with_access_time.model_dump(exclude={"last_accessed"})
@@ -160,10 +161,11 @@ class DataRepository(DataRepositoryPort):
                 s3_endpoint_alias
             )
         except KeyError as exc:
-            log.critical(
-                f"Could not get object storage accessor instance for alias '{s3_endpoint_alias}'."
+            storage_alias_not_configured = self.StorageAliasNotConfiguredError(
+                alias=s3_endpoint_alias
             )
-            raise self.StorageAliasNotConfiguredError(alias=s3_endpoint_alias) from exc
+            log.critical(storage_alias_not_configured)
+            raise storage_alias_not_configured from exc
 
         # check if the file corresponding to the DRS object is already in the outbox:
         if not await object_storage.does_object_exist(
@@ -182,13 +184,9 @@ class DataRepository(DataRepositoryPort):
             )
 
         # Successfully staged, update access information now
+        log.debug(f"Updating access time of for '{drs_id}'.")
         drs_object_with_access_time.last_accessed = utc_dates.now_as_utc()
-        try:
-            log.debug(f"Updating time of last access for '{drs_id}'.")
-            await self._drs_object_dao.update(drs_object_with_access_time)
-        except ResourceNotFoundError as error:
-            # This should not happen, as we already check for the existence above
-            raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
+        await self._drs_object_dao.update(drs_object_with_access_time)
 
         drs_object_with_access = await self._get_access_model(
             drs_object=drs_object,
@@ -226,10 +224,11 @@ class DataRepository(DataRepositoryPort):
                 s3_endpoint_alias
             )
         except KeyError as exc:
-            log.critical(
-                f"Could not get object storage accessor instance for alias '{s3_endpoint_alias}'."
+            storage_alias_not_configured = self.StorageAliasNotConfiguredError(
+                alias=s3_endpoint_alias
             )
-            raise self.StorageAliasNotConfiguredError(alias=s3_endpoint_alias) from exc
+            log.critical(storage_alias_not_configured)
+            raise storage_alias_not_configured from exc
 
         threshold = utc_dates.now_as_utc() - timedelta(days=self._config.cache_timeout)
 
@@ -245,12 +244,9 @@ class DataRepository(DataRepositoryPort):
                     mapping={"object_id": object_id}
                 )
             except ResourceNotFoundError as error:
-                log.critical(
-                    f"Inconsistent state: There is no database entry for object '{object_id}'."
-                )
-                raise self.CleanupError(
-                    object_id=object_id, from_error=error
-                ) from error
+                cleanup_error = self.CleanupError(object_id=object_id, from_error=error)
+                log.critical(cleanup_error)
+                raise cleanup_error from error
 
             # only remove file if last access is later than cache timeout days ago
             if drs_object.last_accessed <= threshold:
@@ -265,12 +261,11 @@ class DataRepository(DataRepositoryPort):
                     object_storage.ObjectError,
                     object_storage.ObjectStorageProtocolError,
                 ) as error:
-                    log.critical(
-                        f"Could not remove object '{object_id}' due to storage issues."
-                    )
-                    raise self.CleanupError(
+                    cleanup_error = self.CleanupError(
                         object_id=object_id, from_error=error
-                    ) from error
+                    )
+                    log.critical(cleanup_error)
+                    raise cleanup_error from error
 
     async def register_new_file(self, *, file: models.DrsObjectBase):
         """Register a file as a new DRS Object."""
@@ -309,7 +304,9 @@ class DataRepository(DataRepositoryPort):
         try:
             drs_object = await self._drs_object_dao.get_by_id(id_=drs_id)
         except ResourceNotFoundError as error:
-            raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
+            drs_object_not_found = self.DrsObjectNotFoundError(drs_id=drs_id)
+            log.error(drs_object_not_found)
+            raise drs_object_not_found from error
 
         log.info(f"Retrieving file envelope for DRS id '{drs_id}'.")
         try:
@@ -322,11 +319,17 @@ class DataRepository(DataRepositoryPort):
             exceptions.BadResponseCodeError,
             exceptions.RequestFailedError,
         ) as error:
-            raise self.APICommunicationError(
+            api_communication_error = self.APICommunicationError(
                 api_url=self._config.ekss_base_url
-            ) from error
+            )
+            log.error(api_communication_error)
+            raise api_communication_error from error
         except exceptions.SecretNotFoundError as error:
-            raise self.EnvelopeNotFoundError(object_id=drs_object.object_id) from error
+            envelope_not_found = self.EnvelopeNotFoundError(
+                object_id=drs_object.object_id
+            )
+            log.error(envelope_not_found)
+            raise envelope_not_found from error
 
         return envelope
 
@@ -362,10 +365,11 @@ class DataRepository(DataRepositoryPort):
         try:
             bucket_id, object_storage = self._object_storages.for_alias(alias)
         except KeyError as exc:
-            log.critical(
-                f"Could not get object storage accessor instance for alias '{alias}'."
+            storage_alias_not_configured = self.StorageAliasNotConfiguredError(
+                alias=alias
             )
-            raise self.StorageAliasNotConfiguredError(alias=alias) from exc
+            log.critical(storage_alias_not_configured)
+            raise storage_alias_not_configured from exc
 
         # Try to remove file from S3
         with contextlib.suppress(object_storage.ObjectNotFoundError):
