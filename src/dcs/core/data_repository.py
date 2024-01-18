@@ -187,7 +187,7 @@ class DataRepository(DataRepositoryPort):
             log.debug(f"Updating time of last access for '{drs_id}'.")
             await self._drs_object_dao.update(drs_object_with_access_time)
         except ResourceNotFoundError as error:
-            # TODO: this is already checked above. Need to rethink what we do here
+            # This should not happen, as we already check for the existence above
             raise self.DrsObjectNotFoundError(drs_id=drs_id) from error
 
         drs_object_with_access = await self._get_access_model(
