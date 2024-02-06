@@ -234,7 +234,7 @@ async def test_cleanup(cleanup_fixture: CleanupFixture):
     """Test outbox cleanup handling"""
     data_repository = cleanup_fixture.joint.data_repository
     await data_repository.cleanup_outbox(
-        s3_endpoint_alias=cleanup_fixture.joint.endpoint_aliases.node1
+        storage_alias=cleanup_fixture.joint.endpoint_aliases.node1
     )
 
     # check if object within threshold is still there
@@ -257,5 +257,5 @@ async def test_cleanup(cleanup_fixture: CleanupFixture):
 
     with pytest.raises(data_repository.StorageAliasNotConfiguredError):
         await data_repository.cleanup_outbox(
-            s3_endpoint_alias=cleanup_fixture.joint.endpoint_aliases.fake
+            storage_alias=cleanup_fixture.joint.endpoint_aliases.fake
         )

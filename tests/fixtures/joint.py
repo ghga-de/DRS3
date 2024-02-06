@@ -70,7 +70,7 @@ from dcs.ports.outbound.dao import DrsObjectDaoPort
 from tests.fixtures.config import get_config
 from tests.fixtures.utils import generate_token_signing_keys, generate_work_order_token
 
-S3_ENDPOINT_ALIASES = ("test", "test2")
+STORAGE_ALIASES = ("test", "test2")
 
 EXAMPLE_FILE = models.AccessTimeDrsObject(
     file_id="examplefile001",
@@ -79,7 +79,7 @@ EXAMPLE_FILE = models.AccessTimeDrsObject(
     creation_date=utc_dates.now_as_utc().isoformat(),
     decrypted_size=12345,
     decryption_secret_id="some-secret",
-    s3_endpoint_alias=S3_ENDPOINT_ALIASES[0],
+    s3_endpoint_alias=STORAGE_ALIASES[0],
     last_accessed=utc_dates.now_as_utc(),
 )
 EXAMPLE_FILE_2 = EXAMPLE_FILE.model_copy(
@@ -87,7 +87,7 @@ EXAMPLE_FILE_2 = EXAMPLE_FILE.model_copy(
     update={
         "file_id": "examplefile002",
         "object_id": "object002",
-        "s3_endpoint_alias": S3_ENDPOINT_ALIASES[1],
+        "s3_endpoint_alias": STORAGE_ALIASES[1],
     },
 )
 
@@ -96,9 +96,9 @@ second_s3_fixture = s3_fixture
 
 @dataclass
 class EndpointAliases:
-    node1: str = S3_ENDPOINT_ALIASES[0]
-    node2: str = S3_ENDPOINT_ALIASES[1]
-    fake: str = f"{S3_ENDPOINT_ALIASES[0]}_fake"
+    node1: str = STORAGE_ALIASES[0]
+    node2: str = STORAGE_ALIASES[1]
+    fake: str = f"{STORAGE_ALIASES[0]}_fake"
 
 
 class EKSSBaseInjector(BaseSettings):
@@ -180,7 +180,6 @@ async def joint_fixture(
             ) as event_subscriber,
             prepare_outbox_cleaner(
                 config=config,
-                s3_endpoint_alias=endpoint_aliases.node1,
                 data_repo_override=data_repository,
             ) as outbox_cleaner,
         ):
