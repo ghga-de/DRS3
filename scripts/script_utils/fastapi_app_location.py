@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,25 +16,8 @@
 
 """Used to define the location of the main FastAPI app object."""
 
-from typing import Any
+# flake8: noqa
+# pylint: skip-file
 
-from fastapi import FastAPI
-
-from dcs.adapters.inbound.fastapi_.configure import DrsApiConfig, get_openapi_schema
-from dcs.adapters.inbound.fastapi_.routes import router
-
-app = FastAPI()
-app.include_router(router)
-
-CONFIG = DrsApiConfig()
-
-
-def custom_openapi() -> dict[str, Any]:
-    if app.openapi_schema:
-        return app.openapi_schema
-    openapi_schema = get_openapi_schema(app, config=CONFIG)
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
-
-
-app.openapi = custom_openapi  # type: ignore [method-assign]
+# Please adapt to package structure:
+from my_microservice.api.main import app
