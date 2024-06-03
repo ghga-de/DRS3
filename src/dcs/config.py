@@ -35,7 +35,7 @@ class WorkOrderTokenConfig(AuthConfig):
     """Overwrite checked claims"""
 
     auth_check_claims: dict[str, Any] = Field(
-        dict.fromkeys(
+        default=dict.fromkeys(
             "type file_id user_id user_public_crypt4gh_key full_user_name email iat exp".split()
         ),
         description="A dict of all GHGA internal claims that shall be verified.",

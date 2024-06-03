@@ -14,16 +14,10 @@
 # limitations under the License.
 """Supported authentication policies for endpoints"""
 
-from pydantic import field_validator
-
-try:  # workaround for https://github.com/pydantic/pydantic/issues/5821
-    from typing import Literal
-except ImportError:
-    from typing import Literal  # type: ignore
-
+from typing import Literal
 
 from ghga_service_commons.utils.crypt import decode_key
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class WorkOrderContext(BaseModel):
