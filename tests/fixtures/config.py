@@ -1,4 +1,4 @@
-# Copyright 2021 - 2023 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
+# Copyright 2021 - 2024 Universität Tübingen, DKFZ, EMBL, and Universität zu Köln
 # for the German Human Genome-Phenome Archive (GHGA)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,4 +38,5 @@ def get_config(
         for source in sources:
             sources_dict.update(**source.model_dump())
 
-    return Config(config_yaml=default_config_yaml, **sources_dict)  # type: ignore
+    # type: ignore
+    return Config(config_yaml=default_config_yaml, **sources_dict)
