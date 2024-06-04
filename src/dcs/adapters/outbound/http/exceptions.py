@@ -24,8 +24,7 @@ class BadResponseCodeError(KnownError):
 
     def __init__(self, *, url: str, response_code: int):
         self.response_code = response_code
-        message = f"The request to {
-            url} failed with response code {response_code}"
+        message = f"The request to {url} failed with response code {response_code}"
         super().__init__(message)
 
 

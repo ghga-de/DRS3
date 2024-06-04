@@ -80,10 +80,11 @@ class DataRepositoryConfig(BaseSettings):
     def check_server_uri(cls, value: str):
         """Checks the drs_server_uri."""
         if not re.match(r"^drs://.+/$", value):
-            raise ValueError(
-                f"The drs_server_uri has to start with 'drs://' and end with '/', got : {
-                    value}"
+            message = (
+                "The drs_server_uri has to start with 'drs://' and end with '/'"
+                + f", got : {value}"
             )
+            raise ValueError(message)
 
         return value
 
